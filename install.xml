@@ -1,0 +1,55 @@
+<install>
+    <name>ofxKinectNui</name>
+	
+	<version>0.01</version>
+	<author>sadmb</author>
+	<url>http://anno-lab.com/</url>
+	
+	<add>	
+		<!-- 	=====================================================================	-->
+		<!--	========================== add per project using this addon =========	-->
+		<!-- 	=====================================================================	-->
+	
+		<src>
+			<folder name="addons/ofxKinectNui/src">
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNui.h</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNui.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/ofx3DBaseVideo.h</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNuiCalibration.h</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNuiCalibration.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNuiPlayer.h</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNuiPlayer.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNuiRecorder.h</file>
+				<file>../../../addons/ofxKinectNui/src/ofxKinectNuiRecorder.cpp</file>
+			</folder>
+			<folder name="addons/ofxKinectNui/src/kinect/nui">
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/Kinect.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/Kinect.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/KinectContext.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/KinectContext.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageStream.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageStream.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageFrame.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageFrame.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/SkeletonEngine.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/SkeletonEngine.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/SkeletonFrame.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/SkeletonFrame.cpp</file>
+			</folder>
+			<folder name="addons/ofxKinectNui/src/win32">
+				<file>../../../addons/ofxKinectNui/src/win32/Event.h</file>
+				<file>../../../addons/ofxKinectNui/src/win32/Event.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/win32/SpinLock.h</file>
+			</folder>
+		</src>
+		<include>
+			<path>../../../addons/ofxKinectNui/src/</path>
+			<path>$(KINECTSDK_DIR)/inc</path>					</include>
+		
+		<link>
+			<lib os="Win32" compiler="visualstudio">$(KINECTSDK_DIR)/lib/x86/MSRKinectNUI.lib</lib>
+			<lib os="x64" compiler="visualstudio">$(KINECTSDK_DIR)/lib/amd64/MSRKinectNUI.lib</lib>
+		</link>
+	</add>
+	 
+</install>
