@@ -4,7 +4,7 @@
 	<version>0.01</version>
 	<author>sadmb</author>
 	<url>http://anno-lab.com/</url>
-	
+	<requires>Kinect sensor, Visual Studio2010 on Windows 7 (or 8 preview), Kinect SDK beta2</requires>
 	<add>	
 		<!-- 	=====================================================================	-->
 		<!--	========================== add per project using this addon =========	-->
