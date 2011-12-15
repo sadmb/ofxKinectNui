@@ -1,3 +1,15 @@
+/******************************************************************/
+/**
+ * @file	testApp.h
+ * @brief	Example for ofxKinectNui addon
+ * @note
+ * @todo
+ * @bug	
+ *
+ * @author	sadmb
+ * @date	Oct. 28, 2011
+ */
+/******************************************************************/
 #pragma once
 
 #include "ofxKinectNui.h"
