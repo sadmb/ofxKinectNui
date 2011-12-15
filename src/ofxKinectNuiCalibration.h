@@ -2,10 +2,9 @@
 /**
  * @file	ofxKinectNuiCalibration.h
  * @brief	kinect depth calibration for oF
- * @note
+ * @note	ofxKinectCalibration.h created by arturo: 03/01/2011
  * @todo
  * @bug	
- * @reference	ofxKinectCalibration.h created by arturo: 03/01/2011
  *
  * @author	sadmb
  * @date	Oct. 28, 2011

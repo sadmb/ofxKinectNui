@@ -1,3 +1,15 @@
+/******************************************************************/
+/**
+ * @file	main.cpp
+ * @brief	Example for ofxKinectNui addon
+ * @note
+ * @todo
+ * @bug	
+ *
+ * @author	sadmb
+ * @date	Oct. 28, 2011
+ */
+/******************************************************************/
 #include "testApp.h" // Needs to be in front of ofMain.h
 #include "ofMain.h"
 #include "ofAppGlutWindow.h"

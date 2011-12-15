@@ -1,6 +1,11 @@
 # Microsoft Kinect SDK beta2 addon for openFrameworks
 
 ## License
+built by sadmb  
+facebook: sadmb  
+twitter: @sadmb  
+mail: sadam@sadmb.com
+
 MIT license  
 http://ja.wikipedia.org/wiki/MIT_License
 

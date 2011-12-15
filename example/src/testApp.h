@@ -1,3 +1,15 @@
+/******************************************************************/
+/**
+ * @file	testApp.h
+ * @brief	Example for ofxKinectNui addon
+ * @note
+ * @todo
+ * @bug	
+ *
+ * @author	sadmb
+ * @date	Oct. 28, 2011
+ */
+/******************************************************************/
 #pragma once
 
 #include "ofxKinectNui.h"
@@ -15,6 +27,11 @@ class testApp : public ofBaseApp {
 		void setup();
 		void update();
 		void draw();
+
+		/**
+		 * @brief	example for adjusting video images to depth images
+		 * @note	inspired by akira's video http://vimeo.com/17146552
+		 */
 		void drawCalibratedTexture();
 		void exit();
 		void drawCircle3f(int n, int radius, ofVec3f cur);
