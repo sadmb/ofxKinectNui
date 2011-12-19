@@ -22,13 +22,54 @@ ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	calibratedRGBPixels = NULL;
 	labelPixels = NULL;
 	skeletons = NULL;
-	bUsesTexture = true;
+	skeletonPoints = NULL;
 	fps = 30;
 }
 
 //-----------------------------------------------------------
 ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 	close();
+
+	if(videoTexture.bAllocated()){
+		videoTexture.clear();
+	}
+	if(depthTexture.bAllocated()){
+		depthTexture.clear();
+	}
+	if(labelTexture.bAllocated()){
+		labelTexture.clear();
+	}
+
+	if(videoPixels != NULL){
+		delete[] videoPixels;
+		videoPixels = NULL;
+	}
+	if(depthPixelsRaw != NULL){
+		delete[] depthPixelsRaw;
+		depthPixelsRaw = NULL;
+	}
+	if(labelPixels != NULL){
+		delete[] labelPixels;
+		labelPixels = NULL;
+	}
+	if(calibratedRGBPixels != NULL){
+		delete[] calibratedRGBPixels;
+		calibratedRGBPixels = NULL;
+	}
+
+	calibration.clear();
+
+	if(skeletonPoints != NULL){
+		delete[] skeletonPoints[0];
+		skeletonPoints[0] = NULL;
+		delete[] skeletonPoints;
+		skeletonPoints = NULL;
+	}
+	if(skeletons != NULL){
+		delete[] skeletons;
+		skeletons = NULL;
+
+	}
 }
 
 //-----------------------------------------------------------
@@ -37,13 +78,26 @@ void ofxKinectNuiPlayer::setUsesTexture(bool bUse){
 }
 
 //-----------------------------------------------------------
-void ofxKinectNuiPlayer::setup(	const string & file,
-								bool hasRecordedVideo /*= true*/,
-								bool hasRecordedDepth /*= true*/,
-								bool hasRecordedLabel /*= true*/,
-								bool hasRecordedSkeleton /*= true*/,
-								NUI_IMAGE_RESOLUTION videoResolution /*= NUI_IMAGE_RESOLUTION_640x480*/,
-								NUI_IMAGE_RESOLUTION depthResolution /*= NUI_IMAGE_RESOLUTION_320x240*/){
+void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/){
+	bUsesTexture = useTexture;
+	f = fopen(ofToDataPath(file).c_str(), "rb");
+	filename = file;
+
+	unsigned char dst = 0;
+	fread(&dst, sizeof(char), 1, f);
+
+	bVideo = (bool)((dst >> 3) & 0x7);
+	bDepth = (bool)((dst >> 2) & 0x7);
+	bLabel = (bool)((dst >> 1) & 0x7);
+	bSkeleton = (bool)(dst & 0x7);
+	
+
+	NUI_IMAGE_RESOLUTION videoResolution;
+	NUI_IMAGE_RESOLUTION depthResolution;
+
+	fread(&videoResolution, sizeof(int), 1, f);
+	fread(&depthResolution, sizeof(int), 1, f);
+
 	switch(videoResolution){
 	case NUI_IMAGE_RESOLUTION_1280x1024:
 		width = 1280;
@@ -79,32 +133,30 @@ void ofxKinectNuiPlayer::setup(	const string & file,
 		ofLog(OF_LOG_ERROR, "ofxKinectNuiPlayer: " + error);
 		return;
 	}
-
-	f = fopen(ofToDataPath(file).c_str(), "rb");
-	filename = file;
-
-	bVideo = hasRecordedVideo;
-	bDepth = hasRecordedDepth;
-	bLabel = hasRecordedLabel;
-	bSkeleton = hasRecordedSkeleton;
 	
 	calibration.init(videoResolution, depthResolution);
 
-	if(!videoPixels && bVideo){
-		videoPixels = new unsigned char[width * height * 3];
+	if(bVideo){
+		if(videoPixels == NULL){
+			videoPixels = new unsigned char[width * height * 3];
+		}
 		memset(videoPixels, 255, width * height * 3);
 		pixels.setFromExternalPixels(videoPixels, width, height, OF_IMAGE_COLOR);
 	}
-	if(!depthPixelsRaw && bDepth){
-		depthPixelsRaw = new unsigned short[depthWidth * depthHeight];
+	if(bDepth){
+		if(depthPixelsRaw == NULL){
+			depthPixelsRaw = new unsigned short[depthWidth * depthHeight];
+		}
 	}
-	if(!labelPixels && bLabel){
+	if(bLabel){
 		labelPixels = new unsigned char[depthWidth * depthHeight * 4];
 	}
-	if(!calibratedRGBPixels && bVideo && bDepth){
-		calibratedRGBPixels = new unsigned char[depthWidth * depthHeight * 3];
-		memset(calibratedRGBPixels, 255, depthWidth * depthHeight * 3);
+	if(bVideo && bDepth){
+		if(calibratedRGBPixels == NULL){
+			calibratedRGBPixels = new unsigned char[depthWidth * depthHeight * 3];
+		}
 	}
+	memset(calibratedRGBPixels, 255, depthWidth * depthHeight * 3);
 
 	if(!videoTexture.bAllocated() && bUsesTexture && bVideo){
 		videoTexture.allocate(width, height, GL_RGB);
@@ -117,15 +169,24 @@ void ofxKinectNuiPlayer::setup(	const string & file,
 	}
 
 	if(bSkeleton){
-		skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
+		if(skeletons == NULL){
+			skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
+		}
+		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3; i++){
+			skeletons[i] = -1.0f;
+		}
 
-		skeletonPoints = new ofPoint*[kinect::nui::SkeletonFrame::SKELETON_COUNT];
-		skeletonPoints[0] = new ofPoint[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT];
-		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
-			skeletonPoints[i] = skeletonPoints[0] + i * kinect::nui::SkeletonData::POSITION_COUNT;
+		if(skeletonPoints == NULL){
+			skeletonPoints = new ofPoint*[kinect::nui::SkeletonFrame::SKELETON_COUNT];
+			skeletonPoints[0] = new ofPoint[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT];
+			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
+				skeletonPoints[i] = skeletonPoints[0] + i * kinect::nui::SkeletonData::POSITION_COUNT;
+			}
 		}
 	}
+	fread(&fps, sizeof(float), 1, f);
 	lastFrameTime = ofGetElapsedTimeMillis();
+
 }
 
 //-----------------------------------------------------------
@@ -137,45 +198,8 @@ void ofxKinectNuiPlayer::close(){
 	f = NULL;
 	filename = "";
 
-	if(videoPixels != NULL){
-		delete[] videoPixels;
-		videoPixels = NULL;
-	}
-	if(depthPixelsRaw != NULL){
-		delete[] depthPixelsRaw;
-		depthPixelsRaw = NULL;
-	}
-	if(labelPixels != NULL){
-		delete[] labelPixels;
-		labelPixels = NULL;
-	}
-	if(calibratedRGBPixels != NULL){
-		delete[] calibratedRGBPixels;
-		calibratedRGBPixels = NULL;
-	}
+	bUsesTexture = false;
 
-	if(skeletonPoints != NULL){
-		delete[] skeletonPoints[0];
-		delete[] skeletonPoints;
-		skeletonPoints[0] = NULL;
-		skeletonPoints = NULL;
-	}
-	if(skeletons != NULL){
-		delete[] skeletons;
-		skeletons = NULL;
-
-	}
-
-	if(videoTexture.bAllocated() && bVideo){
-		videoTexture.clear();
-	}
-	if(depthTexture.bAllocated() && bDepth){
-		depthTexture.clear();
-	}
-	if(labelTexture.bAllocated() && bLabel){
-		labelTexture.clear();
-	}
-	calibration.clear();
 }
 
 //-----------------------------------------------------------
@@ -184,11 +208,13 @@ void ofxKinectNuiPlayer::update(){
 		bIsFrameNew = false;
 		return;
 	}
-	if((ofGetElapsedTimeMillis()-lastFrameTime)<(1000./float(fps))){
+
+	if((ofGetElapsedTimeMillis()-lastFrameTime)<(1000./fps)){
 		bIsFrameNew = false;
 		return;
 	}
 
+	fread(&fps, sizeof(float), 1, f);
 	lastFrameTime = ofGetElapsedTimeMillis();
 	if(bVideo){
 		fread(videoPixels, sizeof(unsigned char), width * height * 3, f);
@@ -204,15 +230,11 @@ void ofxKinectNuiPlayer::update(){
 	}
 	if(bSkeleton){
 		fread(skeletons, sizeof(float), kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
-		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
-			for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
-				skeletonPoints[i][j].x = skeletons[i * kinect::nui::SkeletonData::POSITION_COUNT + j * 3];
-				skeletonPoints[i][j].y = skeletons[i * kinect::nui::SkeletonData::POSITION_COUNT + j * 3 + 1];
-				skeletonPoints[i][j].z = skeletons[i * kinect::nui::SkeletonData::POSITION_COUNT + j * 3 + 2];
-				if((int)skeletonPoints[i][0].x < 0 && (int)skeletonPoints[i][0].y < 0 && (int)skeletonPoints[i][0].z < 0){
-					continue;
-				}
-				std::cout << "play::[" << i << "][" << j << "]:: " << skeletons[i * kinect::nui::SkeletonData::POSITION_COUNT + j * 3] << ", " << skeletons[i * kinect::nui::SkeletonData::POSITION_COUNT + j * 3 + 1] << ", " << skeletons[i * kinect::nui::SkeletonData::POSITION_COUNT + j * 3 + 2] << endl;
+		for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
+			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
+				skeletonPoints[i][j].x = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3];
+				skeletonPoints[i][j].y = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 1];
+				skeletonPoints[i][j].z = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 2];
 			}
 		}
 	}
@@ -221,9 +243,17 @@ void ofxKinectNuiPlayer::update(){
 	// loop?
 	if(bLoop && std::feof(f) > 0) {
 		f = fopen(ofToDataPath(filename).c_str(), "rb");
+		unsigned char dst = 0;
+		fread(&dst, sizeof(char), 1, f);
+		int dst2 = 0;
+		fread(&dst2, sizeof(int), 1, f);
+		fread(&dst2, sizeof(int), 1, f);
+		fread(&fps, sizeof(float), 1, f);
 	}
 
-	calibration.update(depthPixelsRaw);
+	if(bDepth){
+		calibration.update(depthPixelsRaw);
+	}
 	if(bUsesTexture && bVideo){
 		videoTexture.loadData(videoPixels, width, height, GL_RGB);
 	}

@@ -43,23 +43,11 @@ public:
 	virtual ~ofxKinectNuiPlayer();
 	
 	/**
-	 * @brief	Setup the recording to read
-	 * @note	Make sure you recorded the video/depth/skeleton frames or reading them will fail big time!
-	 * @args	file				filepath
-	 * @args	hasRecordedVideo	set false when not recording the video image
-	 * @args	hasRecordedDepth	set false when not recording the depth image
-	 * @args	hasRecordedLabel	set true when recording the label image
-	 * @args	hasRecordedSkeleton	set true when recording the skeleton points
-	 * @args	videoResolution		1280x1024 or 640x480, default is 640x480
-	 * @args	depthResolution		640x480, 320x240 or 80x60, default is 320x240. set label false when choose 640x480
+	 * @brief	Setup the player to read
+	 * @param	file		filepath
+	 * @param	useTexture	set false if you want to get pixels directly
 	 */
-	void setup(	const string & file,
-				bool hasRecordedVideo = true,
-				bool hasRecordedDepth = true,
-				bool hasRecordedLabel = false,
-				bool hasRecordedSkeleton = false,
-				NUI_IMAGE_RESOLUTION videoResolution = NUI_IMAGE_RESOLUTION_640x480,
-				NUI_IMAGE_RESOLUTION depthResolution = NUI_IMAGE_RESOLUTION_320x240);
+	void setup(	const string & file, bool useTexture = true);
 
 	/**
 	 * @brief	Update kinect player
@@ -154,7 +142,7 @@ public:
 	bool isFrameNew();
 
 	/**
-	 * @brief	Close connection
+	 * @brief	Stop and close
 	 */
 	void close();
 	
@@ -223,7 +211,7 @@ public:
 	 */
 	ofVec3f getWorldCoordinateFor(int x, int y);
 
-	int fps; ///< fps when recorded
+	float fps; ///< fps when recorded
 
 	int	width; ///< width
 	int	height; ///< height

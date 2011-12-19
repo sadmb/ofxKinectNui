@@ -46,7 +46,8 @@ namespace kinect {
 				// if theres already a Kinect class corresponding to this kinect device.
 				for(int i = 0; i < size; i++){
 					if(kinects_[i]->instanceName_ != NULL && 0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
-						kinects_[i]->Create(kinects_[i]->instanceName_);
+						kinects_[i]->Connect(kinects_[i]->instanceName_);
+						std::wcout << "KINECT DETECTED, Device Name:: " << pStatusData->instanceName << "\n" << std::endl;
 						found = true;
 						break;
 					}
@@ -58,7 +59,8 @@ namespace kinect {
 						for(int i = 0; i < size; i++){
 							if(!kinects_[i]->IsConnected()){
 								kinects_[i]->index_ = index;
-								kinects_[i]->Create(index);
+								kinects_[i]->Connect(index);
+								std::wcout << "KINECT DETECTED, Device Name:: " << pStatusData->instanceName << "\n" << std::endl;
 								found = true;
 								break;
 							}
@@ -81,6 +83,7 @@ namespace kinect {
 				for(int i = 0; i < size; i++){
 					if(0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
 						kinects_[i]->Shutdown();
+						std::wcout<< "\n" << "KINECT LOST, Device Name::  " << pStatusData->instanceName << "\n" << std::endl;
 						break;
 					}
 				}
@@ -103,7 +106,6 @@ namespace kinect {
 				int size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
 					if(kinects_[i]->index_ == instance->InstanceIndex()){
-						std::wcout << "KINECT DETECTED, Device Name:: " << instance->NuiInstanceName() << "\n" << std::endl;
 						return instance;
 					}
 				}
@@ -121,7 +123,6 @@ namespace kinect {
 				int size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
 					if(0 == wcscmp(kinects_[i]->instanceName_, instance->NuiInstanceName())){
-						std::wcout << "KINECT DETECTED, Device Name::  " << instance->NuiInstanceName() << "\n" << std::endl;
 						return instance;
 					}
 				}
@@ -135,7 +136,7 @@ namespace kinect {
 		{
 			if(IsConnected(kinect.index_)){
 				lock_.lock();
-				std::wcout<< "\n" << "KINECT LOST, Device Name::  " << kinect.instanceName_ << "\n" << std::endl;
+				std::wcout << "Kinect[" << kinect.index_ << "] Shutdown, Device Name:: " << kinect.instanceName_ << "\n" << std::endl;
 				kinect.instance_->NuiShutdown();
 				lock_.unlock();
 			}

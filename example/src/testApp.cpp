@@ -42,8 +42,8 @@ void testApp::setup() {
 //--------------------------------------------------------------
 void testApp::update() {
 	kinectSource->update();
-	if(bRecord && kinectRecorder.isOpened()){
-		kinectRecorder.newFrame(kinect.getSkeletonPoints(), kinect.getPixels(), kinect.getDepthPixelsRaw(), kinect.getCalibratedRGBPixels(), kinect.getLabelPixels());
+	if(bRecord){
+		kinectRecorder.update();
 	}
 #ifdef USE_TWO_KINECTS
 	kinect2.update();
@@ -155,20 +155,11 @@ void testApp::keyPressed (int key) {
 		break;
 	case 'o':
 	case 'O':
-		if(!kinect.isInited()){
-			kinect.init();
-		}
-		if(kinect.isInited()){
-			kinect.setAngle(angle);
-			kinect.open();
-		}
+		kinect.open();
 		break;
 	case 'c':
 	case 'C':
-		if(kinect.isOpened()){
-			kinect.setAngle(0);
-			kinect.close();
-		}
+		kinect.close();
 		break;
 	case 'r':
 	case 'R':
@@ -231,7 +222,7 @@ void testApp::startRecording(){
 		// stop playback if running
 		stopPlayback();
 
-		kinectRecorder.init(ofToDataPath("recording.dat"), kinect.getVideoResolution(), kinect.getDepthResolution());
+		kinectRecorder.setup(kinect, "recording.dat");
 		bRecord = true;
 	}
 }
@@ -251,7 +242,7 @@ void testApp::startPlayback(){
 		kinect.close();
 
 		// set record file and source
-		kinectPlayer.setup(ofToDataPath("recording.dat"), true, true, true, true, kinect.getVideoResolution(), kinect.getDepthResolution());
+		kinectPlayer.setup("recording.dat");
 		kinectPlayer.loop();
 		kinectSource = &kinectPlayer;
 		bPlayback = true;

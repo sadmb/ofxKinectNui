@@ -30,7 +30,7 @@
  * @date		Oct. 26, 2011
  */
 /****************************************/
-class ofxKinectNui: public ofxBase3DVideo, protected ofThread{
+class ofxKinectNui: public ofxBase3DVideo {
 public:
 	ofxKinectNui();
 	virtual ~ofxKinectNui();
@@ -360,11 +360,11 @@ protected:
 	
 	ofPixels pixels;	///< video pixels
 
-	void threadedFunction();
 private:
 	kinect::nui::Kinect kinect;
 
 	bool bIsOpened;		///< is stream opened?
+	bool bIsInited;		///< is kinect initialized?
 	bool bGrabsVideo;
 	bool bGrabsDepth;
 	bool bGrabsLabel;

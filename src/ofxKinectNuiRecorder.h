@@ -16,6 +16,7 @@
 
 #include "kinect\nui\Kinect.h"
 #include "ofMain.h"
+#include "ofxKinectNui.h"
 
 //////////////////////////////////////////////////////
 //				class declarations					//
@@ -34,24 +35,19 @@ public:
 	ofxKinectNuiRecorder();
 	virtual ~ofxKinectNuiRecorder();
 
-	void init(	const string & filename,
-				NUI_IMAGE_RESOLUTION videoResolution = NUI_IMAGE_RESOLUTION_640x480,
-				NUI_IMAGE_RESOLUTION depthResolution = NUI_IMAGE_RESOLUTION_320x240);
+	void setup(ofxKinectNui& kinect, const string & filename);
 
-	void newFrame(	ofPoint** skeletonPoints = NULL,
-					unsigned char* videoPixels = NULL,
-					unsigned short* depthPixelsRaw = NULL,
-					unsigned char* calibratedRGBPixels = NULL,
-					unsigned char* labelPixels = NULL);
+	void update();
 	void close();
 
-	bool isOpened();
+	bool isActive();
 
 private:
 	FILE* f;
 	int width, height;
 	int depthWidth, depthHeight;
 	float* skeletons;
+	ofxKinectNui* mKinect;
 	NUI_IMAGE_RESOLUTION mVideoResolution;
 	NUI_IMAGE_RESOLUTION mDepthResolution;
 };

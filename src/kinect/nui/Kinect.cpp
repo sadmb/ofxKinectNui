@@ -33,7 +33,7 @@ namespace kinect {
 			// add to the kinect context
 			KinectContext::GetContext().Add(*this);
 			// create instance if the kinect already plugged in
-			Create(index_);
+			Connect(index_);
 		}
 
 		Kinect::Kinect(BSTR deviceName)
@@ -46,7 +46,7 @@ namespace kinect {
 			// add to the kinect context
 			KinectContext::GetContext().Add(*this);
 			// create instance if the kinect already plugged in
-			Create(deviceName);
+			Connect(deviceName);
 		}
 
 		//----------------------------------------------------------
@@ -110,7 +110,6 @@ namespace kinect {
 		{
 			if(isConnected_){
 				KinectContext::GetContext().Shutdown(*this);
-				isConnected_ = false;
 			}
 			isInited_ = false;
 		}
@@ -196,7 +195,7 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
-		bool Kinect::Create(int index)
+		bool Kinect::Connect(int index)
 		{
 			INuiInstance* instance = KinectContext::GetContext().Create(index);
 			if(instance == NULL){
@@ -212,7 +211,7 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
-		bool Kinect::Create(BSTR deviceName)
+		bool Kinect::Connect(BSTR deviceName)
 		{
 			INuiInstance* instance = KinectContext::GetContext().Create(deviceName);
 			if(instance == NULL){

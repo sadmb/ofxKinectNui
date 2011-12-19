@@ -197,13 +197,13 @@ namespace kinect {
 			 * @brief	Create kinect nui instance
 			 * @param	index	index for Kinect
 			 */
-			bool Create(int index);
+			bool Connect(int index);
 
 			/**
 			 * @brief	Create kinect nui instance
 			 * @param	deviceName	deviceName for Kinect
 			 */
-			bool Create(BSTR deviceName);
+			bool Connect(BSTR deviceName);
 
 			/**
 			 * @brief	Callback when kinect state changed
