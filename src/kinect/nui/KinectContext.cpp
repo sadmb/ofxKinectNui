@@ -71,7 +71,7 @@ namespace kinect {
 
 			size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
-				if(0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
+				if(kinects_[i]->instanceName_ != NULL && 0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
 					kinects_[i]->StatusProc(pStatusData);
 					break;
 				}
@@ -81,8 +81,8 @@ namespace kinect {
 			if(FAILED(pStatusData->hrStatus)){
 				size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
-					if(0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
-						kinects_[i]->Shutdown();
+					if(kinects_[i]->instanceName_ != NULL && 0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
+						kinects_[i]->Disconnect();
 						std::wcout<< "\n" << "KINECT LOST, Device Name::  " << pStatusData->instanceName << "\n" << std::endl;
 						break;
 					}
@@ -148,7 +148,7 @@ namespace kinect {
 			lock_.lock();
 			int size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
-					Shutdown(*kinects_[i]);
+				Shutdown(*kinects_[i]);
 			}
 			lock_.unlock();
 		}

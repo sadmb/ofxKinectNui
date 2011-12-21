@@ -18,7 +18,7 @@
 #include "ofxKinectNuiRecorder.h"
 
 // uncomment this to read from two kinects simultaneously
-// #define USE_TWO_KINECTS
+//#define USE_TWO_KINECTS
 
 
 class testApp : public ofBaseApp {
@@ -43,6 +43,8 @@ class testApp : public ofBaseApp {
 		void mousePressed(int x, int y, int button);
 		void mouseReleased(int x, int y, int button);
 		void windowResized(int w, int h);
+		void kinectPlugged();
+		void kinectUnplugged();
 		
 		void startRecording();
 		void stopRecording();
@@ -64,7 +66,9 @@ class testApp : public ofBaseApp {
 		bool bRecord;
 		bool bPlayback;
 		bool bDrawCalibratedTexture;
-
+		bool bPlugged;
+		bool bUnplugged;
+		
 		float nearClipping;
 		float farClipping;
 		int angle;

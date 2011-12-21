@@ -18,6 +18,7 @@
 #include "ofxBase3DVideo.h"
 #include "ofxKinectNuiCalibration.h"
 
+
 //////////////////////////////////////////////////////
 //				class declarations					//
 //////////////////////////////////////////////////////
@@ -338,6 +339,11 @@ public:
 	template<class T> void addKinectListener(T* object, void(T::*pluggedFunction)(), void(T::*unpluggedFunction)())
 	{
 		kinect.AddKinectListener(object, pluggedFunction, unpluggedFunction);
+	}
+
+	template<class T> void removeKinectListener(T* object)
+	{
+		kinect.RemoveKinectListener(object);
 	}
 
 

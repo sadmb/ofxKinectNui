@@ -19,6 +19,8 @@ void testApp::setup() {
 	kinect.init(true, true, true, true); // enable all capture
 //	kinect.init(true, true, false, false, true, NUI_IMAGE_RESOLUTION_640x480, NUI_IMAGE_RESOLUTION_320x240); // default settings.
 	kinect.open();
+
+	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
 	
 #ifdef USE_TWO_KINECTS
 	// watch out that only the first kinect can grab label and skeleton.
@@ -31,6 +33,11 @@ void testApp::setup() {
 	angle = kinect.getCurrentAngle();
 	bRecord = false;
 	bPlayback = false;
+	if(kinect.isConnected()){
+		bPlugged = true;
+	}else{
+		bPlugged = false;
+	}
 
 	bDrawCalibratedTexture = false;
 
@@ -101,6 +108,17 @@ void testApp::draw() {
 				 << "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl
 				 << "press r to record and q to playback, record is: " << bRecord << ", playback is: " << bPlayback;
 	ofDrawBitmapString(reportStream.str(), 20, 652);
+	
+	stringstream kinectReport;
+	if(bPlugged && !kinect.isOpened() && !bPlayback){
+		ofSetColor(0, 255, 0);
+		kinectReport << "Kinect is plugged..." << endl;
+		ofDrawBitmapString(kinectReport.str(), 200, 300);
+	}else if(!bPlugged){
+		ofSetColor(255, 0, 0);
+		kinectReport << "Kinect is unplugged..." << endl;
+		ofDrawBitmapString(kinectReport.str(), 200, 300);
+	}
 
 }
 
@@ -137,6 +155,7 @@ void testApp::exit() {
 
 	kinect.setAngle(0);
 	kinect.close();
+	kinect.removeKinectListener(this);
 	kinectPlayer.close();
 	kinectRecorder.close();
 
@@ -214,6 +233,16 @@ void testApp::mouseReleased(int x, int y, int button){
 
 //--------------------------------------------------------------
 void testApp::windowResized(int w, int h){
+}
+
+//--------------------------------------------------------------
+void testApp::kinectPlugged(){
+	bPlugged = true;
+}
+
+//--------------------------------------------------------------
+void testApp::kinectUnplugged(){
+	bPlugged = false;
 }
 
 //--------------------------------------------------------------

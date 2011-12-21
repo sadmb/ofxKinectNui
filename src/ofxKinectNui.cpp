@@ -31,7 +31,10 @@ ofxKinectNui::ofxKinectNui(){
 	labelPixels = NULL;
 	calibratedRGBPixels = NULL;
 	skeletonPoints = NULL;
+	bIsInited = false;
 	bIsOpened = false;
+
+	addKinectListener(this, &ofxKinectNui::pluggedFunc, &ofxKinectNui::unpluggedFunc);
 }
 
 //---------------------------------------------------------------------------
@@ -72,6 +75,11 @@ ofxKinectNui::~ofxKinectNui(){
 		delete[] skeletonPoints;
 		skeletonPoints = NULL;
 	}
+
+	removeKinectListener(this);
+
+	bIsInited = false;
+	bIsOpened = false;
 }
 
 //---------------------------------------------------------------------------
@@ -83,6 +91,16 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 						NUI_IMAGE_RESOLUTION videoResolution /*= NUI_IMAGE_RESOLUTION_640x480*/,
 						NUI_IMAGE_RESOLUTION depthResolution /*=NUI_IMAGE_RESOLUTION_320x240*/){
 
+	bGrabsVideo = grabVideo;
+	bGrabsDepth = grabDepth;
+	bGrabsLabel = grabLabel;
+	bGrabsSkeleton = grabSkeleton;
+	bUsesTexture = useTexture;
+	mVideoResolution = videoResolution;
+	mDepthResolution = depthResolution;
+
+	bIsInited = true;
+	
 	if(!kinect.IsConnected()){
 		string error = "Check the kinect connection.";
 		ofLog(OF_LOG_ERROR, "ofxKinectNui: " + error);
@@ -159,14 +177,6 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		}
 	}
 
-	bGrabsVideo = grabVideo;
-	bGrabsDepth = grabDepth;
-	bGrabsLabel = grabLabel;
-	bGrabsSkeleton = grabSkeleton;
-	bUsesTexture = useTexture;
-	mVideoResolution = videoResolution;
-	mDepthResolution = depthResolution;
-	
 	calibration.init(mVideoResolution, mDepthResolution);
 
 	DWORD dwFlags = 0x00000000;
@@ -233,8 +243,6 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		ofLog(OF_LOG_ERROR, "ofxKinectNui: Initialization failed.");
 	}
 	
-	bIsInited = true;
-
 	return kinect.IsInited();
 }
 
@@ -269,7 +277,7 @@ bool ofxKinectNui::open(){
 //---------------------------------------------------------------------------
 void ofxKinectNui::close(){
 	if(isOpened()){
-		kinect.Shutdown();
+		kinect.Close();
 
 		bIsOpened = false;
 	}
@@ -349,6 +357,16 @@ void ofxKinectNui::update(){
 			}
 		}
 	}
+}
+
+//---------------------------------------------------------------------------
+void ofxKinectNui::pluggedFunc(){
+}
+
+//---------------------------------------------------------------------------
+void ofxKinectNui::unpluggedFunc(){
+	bIsOpened = false;
+	std::cout << "outoutout" << std::endl;
 }
 
 //---------------------------------------------------------------------------
@@ -552,12 +570,21 @@ void ofxKinectNui::drawLabel(const ofRectangle& rect){
 }
 
 void ofxKinectNui::setAngle(int angleInDegrees){
-	targetAngle = angleInDegrees;
-	kinect.SetAngle(targetAngle);
+	if(kinect.IsConnected()){
+		targetAngle = angleInDegrees;
+		kinect.SetAngle(targetAngle);
+	}else{
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: setAngle() is denied. Check Kinect connection.");
+	}
 }
 
 int ofxKinectNui::getCurrentAngle(){
-	return (int)kinect.GetAngle();
+	if(kinect.IsConnected()){
+		return (int)kinect.GetAngle();
+	}else{
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: getAngle() is denied. Check Kinect connection.");
+		return 0;
+	}
 }
 
 int ofxKinectNui::getTargetAngle(){
@@ -635,6 +662,7 @@ ofPoint** ofxKinectNui::getSkeletonPoints(){
 ofColor ofxKinectNui::getColorAt(int x, int y){
 	ofColor c;
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: Kinect stream is not opened");
 		return c;
 	}
 
@@ -662,6 +690,7 @@ ofColor ofxKinectNui::getColorAt(const ofPoint& point){
 ofColor ofxKinectNui::getCalibratedColorAt(int depthX, int depthY){
 	ofColor c;
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: Kinect stream is not opened");
 		return c;
 	}
 
