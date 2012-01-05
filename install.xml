@@ -1,7 +1,7 @@
 <install>
     <name>ofxKinectNui</name>
 	
-	<version>0.01</version>
+	<version>0.02</version>
 	<author>sadmb</author>
 	<url>http://anno-lab.com/</url>
 	<requires>Kinect sensor, Visual Studio2010 on Windows 7 (or 8 preview), Kinect SDK beta2</requires>

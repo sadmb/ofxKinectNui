@@ -33,11 +33,7 @@ void testApp::setup() {
 	angle = kinect.getCurrentAngle();
 	bRecord = false;
 	bPlayback = false;
-	if(kinect.isConnected()){
-		bPlugged = true;
-	}else{
-		bPlugged = false;
-	}
+	bPlugged = kinect.isConnected();
 
 	bDrawCalibratedTexture = false;
 
@@ -100,15 +96,6 @@ void testApp::draw() {
 	}
 	ofPopMatrix();
 
-	// draw instructions
-	ofSetColor(255, 255, 255);
-	stringstream reportStream;
-	reportStream << " (press: < >), fps: " << ofGetFrameRate() << endl
-				 << "press c to close the stream and o to open it again, stream is: " << kinect.isOpened() << endl
-				 << "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl
-				 << "press r to record and q to playback, record is: " << bRecord << ", playback is: " << bPlayback;
-	ofDrawBitmapString(reportStream.str(), 20, 652);
-	
 	stringstream kinectReport;
 	if(bPlugged && !kinect.isOpened() && !bPlayback){
 		ofSetColor(0, 255, 0);
@@ -120,14 +107,25 @@ void testApp::draw() {
 		ofDrawBitmapString(kinectReport.str(), 200, 300);
 	}
 
+	// draw instructions
+	ofSetColor(255, 255, 255);
+	stringstream reportStream;
+	reportStream << " (press: < >), fps: " << ofGetFrameRate() << endl
+				 << "press 'c' to close the stream and 'o' to open it again, stream is: " << kinect.isOpened() << endl
+				 << "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl
+				 << "press 'r' to record and 'p' to playback, record is: " << bRecord << ", playback is: " << bPlayback << endl
+				 << "press 'q' to show calibratedRGB sample: " << bDrawCalibratedTexture;
+	ofDrawBitmapString(reportStream.str(), 20, 652);
+	
 }
 
 //--------------------------------------------------------------
 void testApp::drawCalibratedTexture(){
 	int offsetX = 0;
 	int offsetY = 0;
-	ofRotateY(50);
-	calibratedTexture.loadData(kinect.getCalibratedRGBPixels(), 320, 240, GL_RGB);
+	ofRotateY(mRotationY);
+	ofRotateX(mRotationX);
+	calibratedTexture.loadData(kinect.getCalibratedVideoPixels());
 	calibratedTexture.draw(offsetX, offsetY, 800, 600);
 	for(int y = 0; y < 240; y+=2){
 		for(int x = 0; x < 320; x+=2){
@@ -138,7 +136,7 @@ void testApp::drawCalibratedTexture(){
 				radius = radius * radius;
 				ofPoint p = ofPoint(x, y);
 				ofSetColor(kinect.getCalibratedColorAt(p));
-				glTranslatef(x * 2.5 + offsetX, y * 2.5 + offsetY, radius);
+				glTranslatef(x * 2.5 + offsetX, y * 2.5 + offsetY, radius * 3);
 				ofCircle(0, 0, radius);
 				glPopMatrix();
 			}
@@ -215,8 +213,8 @@ void testApp::keyPressed (int key) {
 
 //--------------------------------------------------------------
 void testApp::mouseMoved(int x, int y) {
-	mRotationY = x;
-	mRotationX = y;
+	mRotationY = x / 20;
+	mRotationX = (y - 384) / 10;
 }
 
 //--------------------------------------------------------------
@@ -273,6 +271,7 @@ void testApp::startPlayback(){
 		// set record file and source
 		kinectPlayer.setup("recording.dat");
 		kinectPlayer.loop();
+		kinectPlayer.play();
 		kinectSource = &kinectPlayer;
 		bPlayback = true;
 	}

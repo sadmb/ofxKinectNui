@@ -13,51 +13,53 @@
 /******************************************************************/
 #include "ofxKinectNuiPlayer.h"
 
-//--------------------------------------------------------------------
+//---------------------------------------------------------------------------
 ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	f = NULL;
 	filename = "";
-	videoPixels = NULL;
-	depthPixelsRaw = NULL;
-	calibratedRGBPixels = NULL;
-	labelPixels = NULL;
 	skeletons = NULL;
 	skeletonPoints = NULL;
 	fps = 30;
+
+	bPlay = false;
+	bLoop = false;
+	bVideo = false;
+	bDepth = false;
+	bLabel = false;
+	bSkeleton = false;
+	bUsesTexture = false;
+	ofxBase3DVideo::initLookups();
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 	close();
 
-	if(videoTexture.bAllocated()){
+	if(videoTexture.isAllocated()){
 		videoTexture.clear();
 	}
-	if(depthTexture.bAllocated()){
+	if(depthTexture.isAllocated()){
 		depthTexture.clear();
 	}
-	if(labelTexture.bAllocated()){
+	if(labelTexture.isAllocated()){
 		labelTexture.clear();
 	}
 
-	if(videoPixels != NULL){
-		delete[] videoPixels;
-		videoPixels = NULL;
+	if(videoPixels.isAllocated()){
+		videoPixels.clear();
 	}
-	if(depthPixelsRaw != NULL){
-		delete[] depthPixelsRaw;
-		depthPixelsRaw = NULL;
+	if(distancePixels.isAllocated()){
+		distancePixels.clear();
 	}
-	if(labelPixels != NULL){
-		delete[] labelPixels;
-		labelPixels = NULL;
+	if(depthPixels.isAllocated()){
+		depthPixels.clear();
 	}
-	if(calibratedRGBPixels != NULL){
-		delete[] calibratedRGBPixels;
-		calibratedRGBPixels = NULL;
+	if(labelPixels.isAllocated()){
+		labelPixels.clear();
 	}
-
-	calibration.clear();
+	if(calibratedVideoPixels.isAllocated()){
+		calibratedVideoPixels.clear();
+	}
 
 	if(skeletonPoints != NULL){
 		delete[] skeletonPoints[0];
@@ -70,14 +72,21 @@ ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 		skeletons = NULL;
 
 	}
+	bPlay = false;
+	bLoop = false;
+	bVideo = false;
+	bDepth = false;
+	bLabel = false;
+	bSkeleton = false;
+	bUsesTexture = false;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::setUsesTexture(bool bUse){
 	bUsesTexture = bUse;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/){
 	bUsesTexture = useTexture;
 	f = fopen(ofToDataPath(file).c_str(), "rb");
@@ -97,6 +106,10 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 
 	fread(&videoResolution, sizeof(int), 1, f);
 	fread(&depthResolution, sizeof(int), 1, f);
+	
+	fread(&nearClippingDistance, sizeof(unsigned short), 1, f);
+	fread(&farClippingDistance, sizeof(unsigned short), 1, f);
+	ofxBase3DVideo::initLookups(nearClippingDistance, farClippingDistance);
 
 	switch(videoResolution){
 	case NUI_IMAGE_RESOLUTION_1280x1024:
@@ -134,37 +147,45 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 		return;
 	}
 	
-	calibration.init(videoResolution, depthResolution);
+	ofxBase3DVideo::initLookups();
 
 	if(bVideo){
-		if(videoPixels == NULL){
-			videoPixels = new unsigned char[width * height * 3];
+		if(!videoPixels.isAllocated()){
+			videoPixels.allocate(width, height, OF_PIXELS_RGB);
 		}
-		memset(videoPixels, 255, width * height * 3);
-		pixels.setFromExternalPixels(videoPixels, width, height, OF_IMAGE_COLOR);
+		memset(videoPixels.getPixels(), 0, width * height * 3);
 	}
 	if(bDepth){
-		if(depthPixelsRaw == NULL){
-			depthPixelsRaw = new unsigned short[depthWidth * depthHeight];
+		if(!distancePixels.isAllocated()){
+			distancePixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
+		memset(distancePixels.getPixels(), 0, depthWidth * depthHeight);
+
+		if(!depthPixels.isAllocated()){
+			depthPixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
+		}
+		memset(depthPixels.getPixels(), 0, depthWidth * depthHeight);
 	}
 	if(bLabel){
-		labelPixels = new unsigned char[depthWidth * depthHeight * 4];
+		if(!labelPixels.isAllocated()){
+			labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
+		}
+		memset(labelPixels.getPixels(), 0, depthWidth * depthHeight * 4);
 	}
 	if(bVideo && bDepth){
-		if(calibratedRGBPixels == NULL){
-			calibratedRGBPixels = new unsigned char[depthWidth * depthHeight * 3];
+		if(!calibratedVideoPixels.isAllocated()){
+			calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
 		}
+		memset(calibratedVideoPixels.getPixels(), 0, depthWidth * depthHeight * 3);
 	}
-	memset(calibratedRGBPixels, 255, depthWidth * depthHeight * 3);
 
-	if(!videoTexture.bAllocated() && bUsesTexture && bVideo){
+	if(!videoTexture.isAllocated() && bUsesTexture && bVideo){
 		videoTexture.allocate(width, height, GL_RGB);
 	}
-	if(!depthTexture.bAllocated() && bUsesTexture && bDepth){
+	if(!depthTexture.isAllocated() && bUsesTexture && bDepth){
 		depthTexture.allocate(depthWidth, depthHeight, GL_LUMINANCE);
 	}
-	if(!labelTexture.bAllocated() && bUsesTexture && bLabel){
+	if(!labelTexture.isAllocated() && bUsesTexture && bLabel){
 		labelTexture.allocate(depthWidth, depthHeight, GL_RGBA);
 	}
 
@@ -184,12 +205,11 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 			}
 		}
 	}
-	fread(&fps, sizeof(float), 1, f);
 	lastFrameTime = ofGetElapsedTimeMillis();
 
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::close(){
 	if(!f){
 		return;
@@ -199,34 +219,58 @@ void ofxKinectNuiPlayer::close(){
 	filename = "";
 
 	bUsesTexture = false;
-
+	bPlay = false;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
+void ofxKinectNuiPlayer::play(){
+	bPlay = true;
+	lastFrameTime = ofGetElapsedTimeMillis();
+}
+
+//---------------------------------------------------------------------------
+void ofxKinectNuiPlayer::stop(){
+	bPlay = false;
+	f = fopen(ofToDataPath(filename).c_str(), "rb");
+	unsigned char dst = 0;
+	fread(&dst, sizeof(char), 1, f);
+	int dst2 = 0;
+	fread(&dst2, sizeof(int), 1, f);
+	fread(&dst2, sizeof(int), 1, f);
+	unsigned short bit3 = 0;
+	fread(&bit3, sizeof(unsigned short), 1, f);
+	fread(&bit3, sizeof(unsigned short), 1, f);
+}
+
+//---------------------------------------------------------------------------
+void ofxKinectNuiPlayer::pause(){
+	bPlay = false;
+}
+
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::update(){
-	if(!f){
-		bIsFrameNew = false;
+	if(!f || !bPlay){
 		return;
 	}
 
-	if((ofGetElapsedTimeMillis()-lastFrameTime)<(1000./fps)){
-		bIsFrameNew = false;
+	int currentFrameTime = ofGetElapsedTimeMillis();
+	if((currentFrameTime-lastFrameTime)<(1000./fps)){
 		return;
 	}
+	lastFrameTime = currentFrameTime;
 
 	fread(&fps, sizeof(float), 1, f);
-	lastFrameTime = ofGetElapsedTimeMillis();
 	if(bVideo){
-		fread(videoPixels, sizeof(unsigned char), width * height * 3, f);
+		fread(videoPixels.getPixels(), sizeof(unsigned char), width * height * 3, f);
 	}
 	if(bDepth){
-		fread(depthPixelsRaw, sizeof(unsigned short), depthWidth * depthHeight, f);
+		fread(distancePixels.getPixels(), sizeof(unsigned short), depthWidth * depthHeight, f);
 	}
 	if(bVideo && bDepth){
-		fread(calibratedRGBPixels, sizeof(unsigned char), depthWidth * depthHeight * 3, f);
+		fread(calibratedVideoPixels.getPixels(), sizeof(unsigned char), depthWidth * depthHeight * 3, f);
 	}
 	if(bLabel){
-		fread(labelPixels, sizeof(unsigned char), depthWidth * depthHeight * 4, f);
+		fread(labelPixels.getPixels(), sizeof(unsigned char), depthWidth * depthHeight * 4, f);
 	}
 	if(bSkeleton){
 		fread(skeletons, sizeof(float), kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
@@ -239,6 +283,29 @@ void ofxKinectNuiPlayer::update(){
 		}
 	}
 
+	int n = depthWidth * depthHeight;
+	if(bIsDepthNearValueWhite){
+		for(int i = 0; i < n; i++){
+			depthPixels[i] = depthPixelsLookupNearWhite[distancePixels[i]];
+		}
+	}else{
+		for(int i = 0; i < n; i++){
+			depthPixels[i] = depthPixelsLookupFarWhite[distancePixels[i]];
+		}
+	}
+
+	if(bUsesTexture){
+		if(bVideo){
+			videoTexture.loadData(videoPixels);
+		}
+		if(bDepth){
+			depthTexture.loadData(getDepthPixels());
+		}
+		if(bLabel){
+			labelTexture.loadData(labelPixels);
+		}
+	}
+	bIsFrameNew = true;
 
 	// loop?
 	if(bLoop && std::feof(f) > 0) {
@@ -248,25 +315,20 @@ void ofxKinectNuiPlayer::update(){
 		int dst2 = 0;
 		fread(&dst2, sizeof(int), 1, f);
 		fread(&dst2, sizeof(int), 1, f);
-		fread(&fps, sizeof(float), 1, f);
+		unsigned short bit3 = 0;
+		fread(&bit3, sizeof(unsigned short), 1, f);
+		fread(&bit3, sizeof(unsigned short), 1, f);
 	}
-
-	if(bDepth){
-		calibration.update(depthPixelsRaw);
-	}
-	if(bUsesTexture && bVideo){
-		videoTexture.loadData(videoPixels, width, height, GL_RGB);
-	}
-	if(bUsesTexture && bDepth){
-		depthTexture.loadData(getDepthPixels(), depthWidth, depthHeight, GL_LUMINANCE);
-	}
-	if(bUsesTexture && bLabel){
-		labelTexture.loadData(labelPixels, depthWidth, depthHeight, GL_RGBA);
-	}
-	bIsFrameNew = true;
+	
 }
 
-//-----------------------------------------------------------
+
+//---------------------------------------------------------------------------
+bool ofxKinectNuiPlayer::isFrameNew(){
+	return bIsFrameNew;
+}
+
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::draw(float x, float y, float w, float h){
 	if(bUsesTexture && bVideo) {
 		videoTexture.draw(x, y, w, h);
@@ -275,27 +337,27 @@ void ofxKinectNuiPlayer::draw(float x, float y, float w, float h){
 	}
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::draw(float x, float y){
 	draw(x, y, width, height);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::draw(const ofPoint & point){
 	draw(point.x, point.y);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::draw(const ofPoint & point, float w, float h){
 	draw(point.x, point.y, w, h);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::draw(const ofRectangle & rect){
 	draw(rect.x, rect.y, rect.width, rect.height);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawDepth(float x, float y, float w, float h){
 	if(bUsesTexture && bDepth) {
 		depthTexture.draw(x, y, w, h);
@@ -309,22 +371,22 @@ void ofxKinectNuiPlayer::drawDepth(float x, float y){
 	depthTexture.draw(x, y, depthWidth, depthHeight);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawDepth(const ofPoint & point){
 	drawDepth(point.x, point.y);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawDepth(const ofPoint & point, float w, float h){
 	drawDepth(point.x, point.y, w, h);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawDepth(const ofRectangle & rect){
 	drawDepth(rect.x, rect.y, rect.width, rect.height);
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawSkeleton(float x, float y, float w, float h){
 	if(bSkeleton){
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
@@ -382,28 +444,28 @@ void ofxKinectNuiPlayer::drawSkeleton(float x, float y, float w, float h){
 	}
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawSkeleton(float x, float y){
 	drawSkeleton(x, y, width, height);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawSkeleton(const ofPoint & point){
 	drawSkeleton(point.x, point.y);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawSkeleton(const ofPoint & point, float w, float h){
 	drawSkeleton(point.x, point.y, w, h);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawSkeleton(const ofRectangle & rect){
 	drawSkeleton(rect.x, rect.y, rect.width, rect.height);
 }
 
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawLabel(float x, float y, float w, float h){
 	if(bUsesTexture && bLabel) {
 		labelTexture.draw(x, y, w, h);
@@ -412,104 +474,105 @@ void ofxKinectNuiPlayer::drawLabel(float x, float y, float w, float h){
 	}
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawLabel(float x, float y){
 	drawLabel(x, y, width, height);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawLabel(const ofPoint & point){
 	drawLabel(point.x, point.y);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawLabel(const ofPoint & point, float w, float h){
 	drawLabel(point.x, point.y, w, h);
 }
 
-//----------------------------------------------------------
+//---------------------------------------------------------------------------
 void ofxKinectNuiPlayer::drawLabel(const ofRectangle & rect){
 	drawLabel(rect.x, rect.y, rect.width, rect.height);
 }
 
-//-----------------------------------------------------------
-unsigned char * ofxKinectNuiPlayer::getPixels(){
+//---------------------------------------------------------------------------
+ofPixels& ofxKinectNuiPlayer::getVideoPixels(){
 	return videoPixels;
 }
 
-//-----------------------------------------------------------
-unsigned char * ofxKinectNuiPlayer::getDepthPixels(){
-	return calibration.getDepthPixels();
+//---------------------------------------------------------------------------
+ofPixels& ofxKinectNuiPlayer::getDepthPixels(){
+	return depthPixels;
 }
 
-//-----------------------------------------------------------
-unsigned char * ofxKinectNuiPlayer::getLabelPixels(){
+//---------------------------------------------------------------------------
+ofPixels& ofxKinectNuiPlayer::getLabelPixels(){
 	return labelPixels;
 }
 
-//-----------------------------------------------------------
-float * ofxKinectNuiPlayer::getDistancePixels(){
-	return calibration.getDistancePixels();
+//---------------------------------------------------------------------------
+ofShortPixels& ofxKinectNuiPlayer::getDistancePixels(){
+	return distancePixels;
 }
 
-//-----------------------------------------------------------
-unsigned char * ofxKinectNuiPlayer::getCalibratedRGBPixels(){
-	return calibratedRGBPixels;
+//---------------------------------------------------------------------------
+ofPixels& ofxKinectNuiPlayer::getCalibratedVideoPixels(){
+	return calibratedVideoPixels;
 }
 
-//-----------------------------------------------------------
-ofTexture & ofxKinectNuiPlayer::getTextureReference(){
+//---------------------------------------------------------------------------
+ofTexture& ofxKinectNuiPlayer::getVideoTextureReference(){
 	return videoTexture;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 ofTexture & ofxKinectNuiPlayer::getDepthTextureReference(){
 	return depthTexture;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 ofTexture & ofxKinectNuiPlayer::getLabelTextureReference(){
 	return labelTexture;
 }
 
 //---------------------------------------------------------------------------
-ofPixels & ofxKinectNuiPlayer::getPixelsRef() {
-	return pixels;
-}
-
-//-----------------------------------------------------------
 float ofxKinectNuiPlayer::getWidth(){
 	return (float)width;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 float ofxKinectNuiPlayer::getHeight(){
 	return (float)height;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 float ofxKinectNuiPlayer::getDepthWidth(){
 	return (float)depthWidth;
 }
 
-//-----------------------------------------------------------
+//---------------------------------------------------------------------------
 float ofxKinectNuiPlayer::getDepthHeight(){
 	return (float)depthHeight;
 }
 
-//-----------------------------------------------------------
-bool ofxKinectNuiPlayer::isFrameNew(){
-	return bIsFrameNew;
-}
-
-//------------------------------------
+//---------------------------------------------------------------------------
 float ofxKinectNuiPlayer::getDistanceAt(int x, int y) {
-	return calibration.getDistanceAt(x, y);
+	return distancePixels[y * depthWidth + x];
 }
 
-//------------------------------------
-ofVec3f ofxKinectNuiPlayer::getWorldCoordinateFor(int x, int y) {
-	return calibration.getWorldCoordinateFor(x, y);
+//---------------------------------------------------------------------------
+float ofxKinectNuiPlayer::getDistanceAt(ofPoint p) {
+	return getDistanceAt((int)p.x, (int)p.y);
+}
+
+//---------------------------------------------------------------------------
+ofVec3f ofxKinectNuiPlayer::getWorldCoordinateFor(int depthX, int depthY) {
+	const double depthZ = distancePixels[depthWidth * depthX + depthY]/1000.0;
+	return ofxBase3DVideo::getWorldCoordinateFor(depthX, depthY, depthZ);
+}
+
+//---------------------------------------------------------------------------
+ofVec3f ofxKinectNuiPlayer::getWorldCoordinateFor(ofPoint p) {
+	return getWorldCoordinateFor((int)p.x, (int)p.y);
 }
 
 //---------------------------------------------------------------------------

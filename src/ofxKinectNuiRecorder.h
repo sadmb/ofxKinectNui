@@ -14,9 +14,10 @@
 #ifndef OFX_KINECT_NUI_RECORDER_H
 #define OFX_KINECT_NUI_RECORDER_H
 
-#include "kinect\nui\Kinect.h"
+#include "kinect/nui/Kinect.h"
 #include "ofMain.h"
 #include "ofxKinectNui.h"
+#include "ofxBase3DVideo.h"
 
 //////////////////////////////////////////////////////
 //				class declarations					//
@@ -47,6 +48,7 @@ private:
 	int width, height;
 	int depthWidth, depthHeight;
 	float* skeletons;
+
 	ofxKinectNui* mKinect;
 	NUI_IMAGE_RESOLUTION mVideoResolution;
 	NUI_IMAGE_RESOLUTION mDepthResolution;

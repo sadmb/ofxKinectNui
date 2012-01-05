@@ -26,13 +26,16 @@ ofxKinectNui::ofxKinectNui(){
 
 	ofLog(OF_LOG_VERBOSE, "ofxKinect: Creating ofxKinect");
 	
-	videoPixels = NULL;
-	depthPixelsRaw = NULL;
-	labelPixels = NULL;
-	calibratedRGBPixels = NULL;
-	skeletonPoints = NULL;
 	bIsInited = false;
 	bIsOpened = false;
+	bGrabsVideo = false;
+	bGrabsDepth = false;
+	bGrabsLabel = false;
+	bGrabsSkeleton = false;
+	bIsFrameNew = false;
+	ofxBase3DVideo::initLookups();
+
+	skeletonPoints = NULL;
 
 	addKinectListener(this, &ofxKinectNui::pluggedFunc, &ofxKinectNui::unpluggedFunc);
 }
@@ -41,33 +44,33 @@ ofxKinectNui::ofxKinectNui(){
 ofxKinectNui::~ofxKinectNui(){
 	close();
 
-	if(videoTexture.bAllocated()){
+	// clear textures
+	if(videoTexture.isAllocated()){
 		videoTexture.clear();
 	}
-	if(depthTexture.bAllocated()){
+	if(depthTexture.isAllocated()){
 		depthTexture.clear();
 	}
-	if(labelTexture.bAllocated()){
+	if(labelTexture.isAllocated()){
 		labelTexture.clear();
 	}
-	if(videoPixels != NULL){
-		delete[] videoPixels;
-		videoPixels = NULL;
-	}
-	if(depthPixelsRaw != NULL){
-		delete[] depthPixelsRaw;
-		depthPixelsRaw = NULL;
-	}
-	if(labelPixels != NULL){
-		delete[] labelPixels;
-		labelPixels = NULL;
-	}
-	if(calibratedRGBPixels != NULL){
-		delete[] calibratedRGBPixels;
-		calibratedRGBPixels = NULL;
-	}
 
-	calibration.clear();
+	// clear pixels data
+	if(videoPixels.isAllocated()){
+		videoPixels.clear();
+	}
+	if(depthPixels.isAllocated()){
+		depthPixels.clear();
+	}
+	if(distancePixels.isAllocated()){
+		distancePixels.clear();
+	}
+	if(labelPixels.isAllocated()){
+		labelPixels.clear();
+	}
+	if(calibratedVideoPixels.isAllocated()){
+		calibratedVideoPixels.clear();
+	}
 
 	if(skeletonPoints != NULL){
 		delete[] skeletonPoints[0];
@@ -80,6 +83,11 @@ ofxKinectNui::~ofxKinectNui(){
 
 	bIsInited = false;
 	bIsOpened = false;
+	bGrabsVideo = false;
+	bGrabsDepth = false;
+	bGrabsLabel = false;
+	bGrabsSkeleton = false;
+	bIsFrameNew = false;
 }
 
 //---------------------------------------------------------------------------
@@ -177,53 +185,54 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		}
 	}
 
-	calibration.init(mVideoResolution, mDepthResolution);
-
 	DWORD dwFlags = 0x00000000;
 	if(bGrabsVideo){
-		dwFlags |= NUI_INITIALIZE_FLAG_USES_COLOR;
 		if(bUsesTexture){
 			videoTexture.allocate(width, height, GL_RGB);
 		}
 
 		int length = width * height;
-		if(videoPixels == NULL){
-			videoPixels = new unsigned char[length * 3];
+		if(!videoPixels.isAllocated()){
+			videoPixels.allocate(width, height, OF_PIXELS_RGB);
 		}
-		pixels.setFromExternalPixels(videoPixels, width, height, OF_IMAGE_COLOR);
+		memset(videoPixels.getPixels(), 0, length * 3 * sizeof(unsigned char));
 
-		memset(videoPixels, 0, length * 3 * sizeof(unsigned char));
+		dwFlags |= NUI_INITIALIZE_FLAG_USES_COLOR;
 	}
 	if(bGrabsDepth){
-		int length = depthWidth * depthHeight;
-		if(depthPixelsRaw == NULL){
-			depthPixelsRaw = new unsigned short[length];
+		if(bUsesTexture){
+			depthTexture.allocate(depthWidth, depthHeight, GL_LUMINANCE);
 		}
-		memset(depthPixelsRaw, 0, length * sizeof(unsigned short));
+
+		int length = depthWidth * depthHeight;
+		if(!depthPixels.isAllocated()){
+			depthPixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
+		}
+		memset(depthPixels.getPixels(), 0, length*sizeof(unsigned char));
+		if(!distancePixels.isAllocated()){
+			distancePixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
+		}
+		memset(distancePixels.getPixels(), 0, length * sizeof(unsigned short));
 
 		if(bGrabsVideo){
-			if(calibratedRGBPixels == NULL){
-				calibratedRGBPixels = new unsigned char[length * 3];
+			if(!calibratedVideoPixels.isAllocated()){
+				calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
 			}
-			memset(calibratedRGBPixels, 0, length * 3 * sizeof(unsigned char));
+			memset(calibratedVideoPixels.getPixels(), 0, length * 3 * sizeof(unsigned char));
 		}
 
 		if(bGrabsLabel){
-			if(labelPixels == NULL){
-				labelPixels = new unsigned char[length * 4];
-			}
-			memset(labelPixels, 0, length * 4 * sizeof(unsigned char));
-
-			dwFlags |= NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;
 			if(bUsesTexture){
-				depthTexture.allocate(depthWidth, depthHeight, GL_LUMINANCE);
 				labelTexture.allocate(depthWidth, depthHeight, GL_RGBA);
 			}
+			if(!labelPixels.isAllocated()){
+				labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
+			}
+			memset(labelPixels.getPixels(), 0, length * 4 * sizeof(unsigned char));
+
+			dwFlags |= NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;
 		}else{
 			dwFlags |= NUI_INITIALIZE_FLAG_USES_DEPTH;
-			if(bUsesTexture){
-				depthTexture.allocate(depthWidth, depthHeight, GL_LUMINANCE);
-			}
 		}
 	}
 	if(bGrabsSkeleton){
@@ -267,7 +276,6 @@ bool ofxKinectNui::open(){
 		}
 
 		bIsOpened = true;
-
 		return true;
 	}
 	ofLog(OF_LOG_ERROR, "ofxKinectNui: Cannot open stream.");
@@ -280,16 +288,15 @@ void ofxKinectNui::close(){
 		kinect.Close();
 
 		bIsOpened = false;
+		bIsFrameNew = false;
 	}
 }
 
 //---------------------------------------------------------------------------
 void ofxKinectNui::update(){
-
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
 	}
-
 	// wait and update all data
 	kinect.WaitAndUpdateAll();
 		
@@ -306,11 +313,9 @@ void ofxKinectNui::update(){
 				// windows native color set: ABGR to RGBA
 				videobit = video(x, y) & 0x00FFFFFF;
 				videobit = (videobit & 0x00FF0000) >> 16 | (videobit & 0x0000FF00) | (videobit & 0x000000FF) << 16; 
-				memcpy(videoPixels + (video.Width() * y + x) * 3, &videobit, sizeof(char) * 3);
+				memcpy(videoPixels.getPixels() + (video.Width() * y + x) * 3, &videobit, sizeof(char) * 3);
 			}
 		}
-				
-		pixels.setFromExternalPixels(videoPixels, width, height, OF_IMAGE_COLOR);
 	}
 
 	if(bGrabsDepth){
@@ -323,11 +328,16 @@ void ofxKinectNui::update(){
 				if(bGrabsLabel){
 					depthbit = depth(x, y) >> 3;
 					playerLabel = depth(x, y) & 0x7;
-					memcpy(labelPixels + (depth.Width() * y + x) * 4, &color[playerLabel], sizeof(char) * 4);
+					memcpy(labelPixels.getPixels() + (depth.Width() * y + x) * 4, &color[playerLabel], sizeof(char) * 4);
 				}else{
 					depthbit = depth(depth.Width() - x, y);
 				}
-				memcpy(depthPixelsRaw + (depth.Width() * y + x), &depthbit, sizeof(short));
+				memcpy(distancePixels.getPixels() + (depth.Width() * y + x), &depthbit, sizeof(short));
+				if(bIsDepthNearValueWhite){
+					depthPixels[depth.Width() * y + x] = depthPixelsLookupNearWhite[depthbit];
+				}else{
+					depthPixels[depth.Width() * y + x] = depthPixelsLookupFarWhite[depthbit];
+				}
 				if(bGrabsVideo){
 					int depthIndex = depth.Width() * y + x;
 					long vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depth.Width() * y + x, 0) * 3;
@@ -338,25 +348,25 @@ void ofxKinectNui::update(){
 						}else{
 							vbit = videoPixels[vindex + i];
 						}
-						memcpy(calibratedRGBPixels + (depth.Width() * y + x) * 3 + i, &vbit, sizeof(char));
+						memcpy(calibratedVideoPixels.getPixels() + (depth.Width() * y + x) * 3 + i, &vbit, sizeof(char));
 					}
 				}
 			}
 		}
-		calibration.update(depthPixelsRaw);
 	}
 
 	if(bUsesTexture){
 		if(bGrabsVideo){
-			videoTexture.loadData(videoPixels, width, height, GL_RGB);
+			videoTexture.loadData(videoPixels);
 		}
 		if(bGrabsDepth){
-			depthTexture.loadData(getDepthPixels(), depthWidth, depthHeight, GL_LUMINANCE);
-			if(bGrabsLabel){
-				labelTexture.loadData(labelPixels, depthWidth, depthHeight, GL_RGBA);
-			}
+			depthTexture.loadData(depthPixels);
+		}
+		if(bGrabsLabel){
+			labelTexture.loadData(labelPixels);
 		}
 	}
+	bIsFrameNew = true;
 }
 
 //---------------------------------------------------------------------------
@@ -366,7 +376,7 @@ void ofxKinectNui::pluggedFunc(){
 //---------------------------------------------------------------------------
 void ofxKinectNui::unpluggedFunc(){
 	bIsOpened = false;
-	std::cout << "outoutout" << std::endl;
+	bIsFrameNew = false;
 }
 
 //---------------------------------------------------------------------------
@@ -461,39 +471,39 @@ void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
 					ofNoFill();
 					ofSetLineWidth(4);
 					// HEAD
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HEAD], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HEAD], w, h));
 		
 					// BODY_LEFT
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT], w, h));
 
 					// BODY_RIGHT
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT], w, h));
 		
 					// LEG_LEFT
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT], w, h));
 
 					// LEG_RIGHT
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT], w, h));
-					ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT], w, h));
+					ofLine(calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT], w, h), calculateScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT], w, h));
 		
 					ofSetColor(255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i));
 					ofSetLineWidth(0);
 					ofFill();
 					for(int k = 0; k < kinect::nui::SkeletonData::POSITION_COUNT; k++){
-						ofCircle(calcScaledSkeletonPoint(skeletonPoints[i][k], w, h), 5);
+						ofCircle(calculateScaledSkeletonPoint(skeletonPoints[i][k], w, h), 5);
 					}
 					ofPopStyle();
 					ofPopMatrix();
@@ -592,43 +602,33 @@ int ofxKinectNui::getTargetAngle(){
 }
 
 //---------------------------------------------------------------------------
-unsigned char* ofxKinectNui::getPixels(){
+ofPixels& ofxKinectNui::getVideoPixels(){
 	return videoPixels;
 }
 
 //---------------------------------------------------------------------------
-unsigned char* ofxKinectNui::getDepthPixels(){
-	return calibration.getDepthPixels();
+ofPixels& ofxKinectNui::getDepthPixels(){
+	return depthPixels;
 }
 
 //---------------------------------------------------------------------------
-unsigned char* ofxKinectNui::getLabelPixels(){
+ofPixels& ofxKinectNui::getLabelPixels(){
 	return labelPixels;
 }
 
 //---------------------------------------------------------------------------
-unsigned short* ofxKinectNui::getDepthPixelsRaw(){
-	return depthPixelsRaw;
+ofPixels& ofxKinectNui::getCalibratedVideoPixels(){
+	return calibratedVideoPixels;
 }
 
 //---------------------------------------------------------------------------
-unsigned char* ofxKinectNui::getCalibratedRGBPixels(){
-	return calibratedRGBPixels;
+ofShortPixels& ofxKinectNui::getDistancePixels(){
+	return distancePixels;
 }
 
 //---------------------------------------------------------------------------
-float* ofxKinectNui::getDistancePixels(){
-	return calibration.getDistancePixels();
-}
-
-//---------------------------------------------------------------------------
-ofPixels& ofxKinectNui::getPixelsRef(){
-	return pixels;
-}
-
-//---------------------------------------------------------------------------
-ofTexture& ofxKinectNui::getTextureReference(){
-	if(!videoTexture.bAllocated()){
+ofTexture& ofxKinectNui::getVideoTextureReference(){
+	if(!videoTexture.isAllocated()){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getTextureReference - video texture is not allocated");
 	}
 	return videoTexture;
@@ -636,7 +636,7 @@ ofTexture& ofxKinectNui::getTextureReference(){
 
 //---------------------------------------------------------------------------
 ofTexture& ofxKinectNui::getDepthTextureReference(){
-	if(!depthTexture.bAllocated()){
+	if(!depthTexture.isAllocated()){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getDepthTextureReference - depth texture is not allocated");
 	}
 	return depthTexture;
@@ -644,11 +644,12 @@ ofTexture& ofxKinectNui::getDepthTextureReference(){
 
 //---------------------------------------------------------------------------
 ofTexture& ofxKinectNui::getLabelTextureReference(){
-	if(!labelTexture.bAllocated()){
+	if(!labelTexture.isAllocated()){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getLabelTextureReference - label texture is not allocated");
 	}
 	return labelTexture;
 }
+
 
 //---------------------------------------------------------------------------
 ofPoint** ofxKinectNui::getSkeletonPoints(){
@@ -699,9 +700,9 @@ ofColor ofxKinectNui::getCalibratedColorAt(int depthX, int depthY){
 		if(index < 0 || index > depthWidth * depthHeight * 3){
 			return c;
 		}
-		c.r = calibratedRGBPixels[index + 0];
-		c.g = calibratedRGBPixels[index + 1];
-		c.b = calibratedRGBPixels[index + 2];
+		c.r = calibratedVideoPixels[index + 0];
+		c.g = calibratedVideoPixels[index + 1];
+		c.b = calibratedVideoPixels[index + 2];
 		c.a = 255;
 	}else{
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: You should set GrabsVideo and GrabsDepth true");
@@ -715,18 +716,19 @@ ofColor ofxKinectNui::getCalibratedColorAt(const ofPoint & depthPoint){
 }
 
 //---------------------------------------------------------------------------
-ofVec3f ofxKinectNui::getWorldCoordinateFor(int depthX, int depthY) {
-	return calibration.getWorldCoordinateFor(depthX, depthY);
+ofVec3f ofxKinectNui::getWorldCoordinateFor(int depthX, int depthY){
+	const double depthZ = distancePixels[depthWidth * depthX + depthY]/1000.0;
+	return ofxBase3DVideo::getWorldCoordinateFor(depthX, depthY, depthZ);
 }
 
 //---------------------------------------------------------------------------
-float ofxKinectNui::getDistanceAt(int depthX, int depthY){
-	return calibration.getDistanceAt(depthX, depthY);
+unsigned short ofxKinectNui::getDistanceAt(int depthX, int depthY){
+	return distancePixels[depthY * depthWidth + depthX];
 }
 
 //---------------------------------------------------------------------------
-float ofxKinectNui::getDistanceAt(const ofPoint& depthPoint){
-	return calibration.getDistanceAt(depthPoint);
+unsigned short ofxKinectNui::getDistanceAt(const ofPoint& depthPoint){
+	return getDistanceAt(depthPoint.x, depthPoint.y);
 }
 
 //---------------------------------------------------------------------------
@@ -741,7 +743,7 @@ int ofxKinectNui::getPlayerIndexAt(const ofPoint& point){
 
 //---------------------------------------------------------------------------
 bool ofxKinectNui::isFrameNew(){
-	return true;
+	return bIsFrameNew;
 }
 
 //---------------------------------------------------------------------------
@@ -795,57 +797,28 @@ NUI_IMAGE_RESOLUTION ofxKinectNui::getDepthResolution(){
 }
 
 //---------------------------------------------------------------------------
-ofVec2f ofxKinectNui::getVideoSize(){
-	DWORD x = 0;
-	DWORD y = 0;
-	::NuiImageResolutionToSize(mVideoResolution, x, y);
-	ofVec2f resolution = ofVec2f((float)x, (float)y);
-	return resolution;
+int ofxKinectNui::getVideoResolutionWidth(){
+	return width;
 }
 
 //---------------------------------------------------------------------------
-ofVec2f ofxKinectNui::getDepthSize(){
-	DWORD x = 0;
-	DWORD y = 0;
-	::NuiImageResolutionToSize(mDepthResolution, x, y);
-	ofVec2f resolution = ofVec2f((float)x, (float)y);
-	return resolution;
+int ofxKinectNui::getVideoResolutionHeight(){
+	return height;
 }
 
 //---------------------------------------------------------------------------
-void ofxKinectNui::enableDepthNearValueWhite(bool bEnabled){
-	calibration.enableDepthNearValueWhite(bEnabled);
+int ofxKinectNui::getDepthResolutionWidth(){
+	return depthWidth;
 }
 
 //---------------------------------------------------------------------------
-bool ofxKinectNui::isDepthNearValueWhite(){
-	return calibration.isDepthNearValueWhite();
+int ofxKinectNui::getDepthResolutionHeight(){
+	return depthHeight;
 }
 
 //---------------------------------------------------------------------------
-void ofxKinectNui::setClipping(float nearClippingInMillimeters, float farClippingInMillimeters){
-	calibration.setClippingInMilimeters(nearClippingInMillimeters, farClippingInMillimeters);
-}
-
-//---------------------------------------------------------------------------
-float ofxKinectNui::getNearClipping(){
-	return ofxKinectNuiCalibration::getNearClipping();
-}
-
-//---------------------------------------------------------------------------
-float ofxKinectNui::getFarClipping(){
-	return ofxKinectNuiCalibration::getFarClipping();
-}
-
-//---------------------------------------------------------------------------
-ofxKinectNuiCalibration& ofxKinectNui::getCalibration(){
-	return calibration;
-}
-
-//---------------------------------------------------------------------------
-ofPoint ofxKinectNui::calcScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
+ofPoint ofxKinectNui::calculateScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
 	float px = skeletonPoint.x * width;
 	float py = skeletonPoint.y * height;
 	return ofPoint(px, py);
 }
-

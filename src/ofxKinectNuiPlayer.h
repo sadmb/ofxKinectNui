@@ -14,7 +14,7 @@
 #ifndef OFX_KINECT_NUI_PLAYER_H
 #define OFX_KINECT_NUI_PLAYER_H
 
-#include "ofxKinectNuiCalibration.h"
+#include "kinect/nui/Kinect.h" // this should be before ofMain.h
 #include "ofMain.h"
 #include "ofxBase3DVideo.h"
 
@@ -30,7 +30,7 @@
  * @date	Oct. 26, 2011
  */
 /****************************************/
-class ofxKinectNuiPlayer: public ofxBase3DVideo {
+class ofxKinectNuiPlayer: public ofxBase3DVideo{
 public:
 	/**
 	 * @brief	Constructor
@@ -48,6 +48,26 @@ public:
 	 * @param	useTexture	set false if you want to get pixels directly
 	 */
 	void setup(	const string & file, bool useTexture = true);
+
+	/**
+	 * @brief	Stop and close
+	 */
+	void close();
+	
+	/**
+	 * @brief	Play
+	 */
+	void play();
+
+	/**
+	 * @brief	Stop
+	 */
+	void stop();
+
+	/**
+	 * @brief	Pause
+	 */
+	void pause();
 
 	/**
 	 * @brief	Update kinect player
@@ -93,7 +113,7 @@ public:
 	/**
 	 * @brief	Get the reference of video texture
 	 */
-	ofTexture & getTextureReference();
+	ofTexture & getVideoTextureReference();
 
 	/**
 	 * @brief	Get the reference of depth texture
@@ -104,6 +124,12 @@ public:
 	 * @brief	Get the reference of depth texture
 	 */
 	ofTexture & getLabelTextureReference();
+
+	/**
+	 * @brief	Get calibrated video texture
+	 * @return	Calibrated video texture
+	 */
+	ofTexture& getCalibratedVideoTextureReference();
 
 	/**
 	 * @brief	Set if use texture
@@ -131,21 +157,6 @@ public:
 	 */
 	float getDepthHeight();
 
-	void setAnchorPercent(float xPct, float yPct){};
-    void setAnchorPoint(float x, float y){};
-	void resetAnchor(){};
-
-	/**
-	 * @brief	Is frame updated?
-	 * @return	true when updated
-	 */
-	bool isFrameNew();
-
-	/**
-	 * @brief	Stop and close
-	 */
-	void close();
-	
 	/**
 	 * @brief	enable looping
 	 */
@@ -165,44 +176,42 @@ public:
 	 * @brief	enabled or disabled looping
 	 */
 	bool isLooping()		{return bLoop;}
+
+	bool isFrameNew();
 	
 
 	/**
 	 * @brief	Get pixels of video
 	 */
-	unsigned char* getPixels();
+	ofPixels& getVideoPixels();
 
 	/**
 	 * @brief	Get pixels of depth
 	 */
-	unsigned char* getDepthPixels();
+	ofPixels& getDepthPixels();
 
 	/**
 	 * @brief	Get pixels of depth
 	 */
-	unsigned char* getLabelPixels();
+	ofPixels& getLabelPixels();
 
 	/**
 	 * @brief	Get pixels of distance data
 	 */
-	float* getDistancePixels();
+	ofShortPixels& getDistancePixels();
 
 	/**
 	 * @brief	Get calibrated video pixels
 	 */
-	unsigned char* getCalibratedRGBPixels();
+	ofPixels& getCalibratedVideoPixels();
 	
-	/**
-	 * @brief	for ver007 compatibility
-	 */
-	ofPixelsRef getPixelsRef();
-
 	/**
 	 * @brief	Get distance at the point
 	 * @args	x
 	 * @args	y
 	 */
 	float getDistanceAt(int x, int y) ;
+	float getDistanceAt(ofPoint p);
 
 	/**
 	 * @brief	Get world coordinate for the point
@@ -210,6 +219,7 @@ public:
 	 * @args	y
 	 */
 	ofVec3f getWorldCoordinateFor(int x, int y);
+	ofVec3f getWorldCoordinateFor(ofPoint p);
 
 	float fps; ///< fps when recorded
 
@@ -217,33 +227,30 @@ public:
 	int	height; ///< height
 	int	depthWidth; ///< width for depth camera
 	int	depthHeight; ///< height for depth camera
-	
-private:
+protected:
+
 	ofPoint calcScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height);
 
 	FILE * f; ///< file for play
 	string filename; ///< file name
 	ofTexture depthTexture, videoTexture, labelTexture; ///< textures for play
-	bool bUsesTexture; ///< is using texture?
-	unsigned short* depthPixelsRaw; ///< raw depth pixel data
-	unsigned char* videoPixels; ///< video pixel data
-	unsigned char* labelPixels; ///< label pixel data
-	unsigned char* calibratedRGBPixels; ///< calibrated video data corresponding to depth camera
+	ofPixels videoPixels; ///< video pixel data
+	ofPixels depthPixels; ///< video pixel data
+	ofShortPixels distancePixels; ///< raw depth pixel data
+	ofPixels labelPixels; ///< label pixel data
+	ofPixels calibratedVideoPixels; ///< calibrated video data corresponding to depth camera
 	float* skeletons; ///< skeleton data
 	ofPoint** skeletonPoints; ///< skeleton points
 	
-	ofPixels pixels;
-
+	bool bPlay; ///< is play?
 	bool bLoop; ///< is loop?
 	bool bVideo; ///< is video recorded?
 	bool bDepth; ///< is depth recorded?
 	bool bLabel; ///< is label recorded?
 	bool bSkeleton; ///< is skeleton recorded?
-
+	bool bUsesTexture; ///< is using texture?
 	bool bIsFrameNew; ///< is frame new?
 	
 	int lastFrameTime; ///< last frame time
-
-	ofxKinectNuiCalibration calibration; ///< calibration
 };
 #endif // OFX_KINECT_NUI_PLAYER_H

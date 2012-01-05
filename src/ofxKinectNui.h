@@ -16,7 +16,6 @@
 #include "kinect/nui/Kinect.h" // this should be before ofMain.h
 #include "ofMain.h"
 #include "ofxBase3DVideo.h"
-#include "ofxKinectNuiCalibration.h"
 
 
 //////////////////////////////////////////////////////
@@ -31,7 +30,7 @@
  * @date		Oct. 26, 2011
  */
 /****************************************/
-class ofxKinectNui: public ofxBase3DVideo {
+class ofxKinectNui: public ofxBase3DVideo{
 public:
 	ofxKinectNui();
 	virtual ~ofxKinectNui();
@@ -68,7 +67,7 @@ public:
 	 * @brief	update stream data.
 	 */
 	void update();
-	
+
 	/**
 	 * @brief	listener function when kinect is plugged.
 	 */
@@ -142,49 +141,37 @@ public:
 	 * @brief	Get video pixel data
 	 * @return	Video pixel RGB data
 	 */
-	unsigned char* getPixels();
+	ofPixels& getVideoPixels();
 
 	/**
 	 * @brief	Get video pixel data adjusted to depth pixel data
 	 * @return	Calibrated video pixel RGB data
 	 */
-	unsigned char* getCalibratedRGBPixels();
+	ofPixels& getCalibratedVideoPixels();
 
 	/**
 	 * @brief	Get depth pixel data
 	 * @return	Depth pixel gray scale data
 	 */
-	unsigned char* getDepthPixels();
+	ofPixels& getDepthPixels();
 
 	/**
 	 * @brief	Get label pixel data
 	 * @return	Label pixel RGBA data
 	 */
-	unsigned char* getLabelPixels();
-
-	/**
-	 * @brief	Get depth pixel raw data
-	 * @return	Depth pixel 0-65535 scaled raw data
-	 */
-	unsigned short* getDepthPixelsRaw();
+	ofPixels& getLabelPixels();
 
 	/**
 	 * @brief	Get distance pixel data
 	 * @return	Distance pixel data
 	 */
-	float* getDistancePixels();
-
-	/**
-	 * @brief	Get pixels
-	 * @return	video pixels
-	 */
-	ofPixels& getPixelsRef();
+	ofShortPixels& getDistancePixels();
 
 	/**
 	 * @brief	Get video texture
 	 * @return	Video texture
 	 */
-	ofTexture& getTextureReference();
+	ofTexture& getVideoTextureReference();
 
 	/**
 	 * @brief	Get depth texture
@@ -237,8 +224,8 @@ public:
 	 * @param	depthY	y position on depth sensor
 	 * @return	distance (mm)
 	 */
-	float getDistanceAt(int depthX, int depthY);
-	float getDistanceAt(const ofPoint& depthPoint);
+	unsigned short getDistanceAt(int depthX, int depthY);
+	unsigned short getDistanceAt(const ofPoint& depthPoint);
 
 	/**
 	 * @brief	Get color at the point 
@@ -305,8 +292,10 @@ public:
 	NUI_IMAGE_RESOLUTION getVideoResolution();
 	NUI_IMAGE_RESOLUTION getDepthResolution();
 
-	ofVec2f getVideoSize();
-	ofVec2f getDepthSize();
+	int getVideoResolutionWidth();
+	int getVideoResolutionHeight();
+	int getDepthResolutionWidth();
+	int getDepthResolutionHeight();
 
 	/**
 	 * @brief	Set near value of depth frame white
@@ -314,27 +303,6 @@ public:
 	 */
 	void enableDepthNearValueWhite(bool bEnabled);
 	bool isDepthNearValueWhite();
-
-	/**
-	 * @brief	Set near clipping and far clipping in mm.
-	 * @param	nearClipping	The nearest clipping distance from camera. default is 0.
-	 * @param	farClipping		The farthest clipping distance from camera. default is 4000. 
-	 */
-	void setClipping(float nearClippingInMillimeters, float farClippingInMillimeters);
-
-	/**
-	 * @brief	Get the nearest clipping distance
-	 * @return	The nearest clipping distance
-	 */
-	float getNearClipping();
-
-	/**
-	 * @brief	Get the farthest clipping distance
-	 * @return	The farthest clipping distance
-	 */
-	float getFarClipping();
-
-	ofxKinectNuiCalibration& getCalibration();
 
 	template<class T> void addKinectListener(T* object, void(T::*pluggedFunction)(), void(T::*unpluggedFunction)())
 	{
@@ -347,15 +315,29 @@ public:
 	}
 
 
+protected:
+	/**
+	 * @brief	Calculate skeleton points
+	 * @param	point	0.0-1.0 scaled point
+	 * @param	width
+	 * @param	height
+	 * @return	Scaled point
+	 */
+	ofPoint calculateScaledSkeletonPoint(const ofPoint& point, float width, float height);
+
+	kinect::nui::Kinect kinect;
+
 	int width;		///<	width of video stream
 	int height;		///<	height of depth stream
 	int depthWidth;		///<	width of depth stream
 	int depthHeight;	///<	height of depth stream
-protected:
-	unsigned char* videoPixels;		///<	video pixels
-	unsigned short* depthPixelsRaw;	///<	depth pixels
-	unsigned char* calibratedRGBPixels;	///<	video pixels adjusted to depth pixels
-	unsigned char* labelPixels;		///<	label pixels
+
+	ofPixels videoPixels;			///<	video pixels
+	ofPixels depthPixels;			///<	depth pixels
+	ofShortPixels distancePixels;	///<	distance pixels (raw depth pixels data from sensor)
+	ofPixels calibratedVideoPixels;	///<	video pixels adjusted to depth pixels
+	ofPixels labelPixels;			///<	label pixels
+
 	ofTexture videoTexture;		///< video texture
 	ofTexture depthTexture;		///< depth texture
 	ofTexture labelTexture;		///< label texture
@@ -364,32 +346,17 @@ protected:
 
 	int targetAngle;	///< target angle of kinect tilt
 	
-	ofPixels pixels;	///< video pixels
-
-private:
-	kinect::nui::Kinect kinect;
-
-	bool bIsOpened;		///< is stream opened?
-	bool bIsInited;		///< is kinect initialized?
-	bool bGrabsVideo;
-	bool bGrabsDepth;
-	bool bGrabsLabel;
-	bool bGrabsSkeleton;
-	bool bUsesTexture;
+	bool bIsOpened;					///< is stream opened?
+	bool bIsInited;					///< is kinect initialized?
+	bool bGrabsVideo;				///< grabs video?
+	bool bGrabsDepth;				///< grabs depth?
+	bool bGrabsLabel;				///< grabs label?
+	bool bGrabsSkeleton;			///< grabs skeleton?
+	bool bUsesTexture;				///< uses texture?
+	bool bIsFrameNew;				///< frame updated?
 
 	NUI_IMAGE_RESOLUTION mVideoResolution;	///< video resolution flag
 	NUI_IMAGE_RESOLUTION mDepthResolution;	///< depth resolution flag
-
-	ofxKinectNuiCalibration calibration;	///< calibration class for kinect
-
-	/**
-	 * @brief	Calculate skeleton points
-	 * @param	point	0.0-1.0 scaled point
-	 * @param	width
-	 * @param	height
-	 * @return	Scaled point
-	 */
-	ofPoint calcScaledSkeletonPoint(const ofPoint& point, float width, float height);
 
 };
 #endif // OFX_KINECT_NUI_H

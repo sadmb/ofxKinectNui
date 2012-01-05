@@ -74,9 +74,10 @@ void ofxKinectNuiRecorder::setup(ofxKinectNui& kinect, const string & filename){
 	fwrite(&bit2, sizeof(int), 1, f);
 	bit2 = (int)mKinect->getDepthResolution();
 	fwrite(&bit2, sizeof(int), 1, f);
-
-	float fps = ofGetFrameRate();
-	fwrite(&fps, sizeof(float), 1, f);
+	unsigned short bit3 = (int)mKinect->getNearClippingDistance();
+	fwrite(&bit3, sizeof(unsigned short), 1, f);
+	bit3 = mKinect->getFarClippingDistance();
+	fwrite(&bit3, sizeof(unsigned short), 1, f);
 }
 
 //---------------------------------------------------------------------------
@@ -104,22 +105,22 @@ void ofxKinectNuiRecorder::update() {
 	float fps = ofGetFrameRate();
 	fwrite(&fps, sizeof(float), 1, f);
 
-	unsigned char* videoPixels = mKinect->getPixels();
+	unsigned char* videoPixels = mKinect->getVideoPixels().getPixels();
 	if( videoPixels != NULL) {
 		fwrite(videoPixels,  sizeof(char), width * height * 3, f);
 	}
 
-	unsigned short* depthPixelsRaw = mKinect->getDepthPixelsRaw();
-	if(depthPixelsRaw != NULL){
-		fwrite(depthPixelsRaw, sizeof(short), depthWidth * depthHeight, f);
+	unsigned short* distancePixels = mKinect->getDistancePixels().getPixels();
+	if(distancePixels != NULL){
+		fwrite(distancePixels, sizeof(short), depthWidth * depthHeight, f);
 	}
 
-	unsigned char* calibratedRGBPixels = mKinect->getCalibratedRGBPixels();
-	if(calibratedRGBPixels != NULL){
-		fwrite(calibratedRGBPixels, sizeof(char), depthWidth * depthHeight * 3, f);
+	unsigned char* calibratedVideoPixels = mKinect->getCalibratedVideoPixels().getPixels();
+	if(calibratedVideoPixels != NULL){
+		fwrite(calibratedVideoPixels, sizeof(char), depthWidth * depthHeight * 3, f);
 	}
 
-	unsigned char* labelPixels = mKinect->getLabelPixels();
+	unsigned char* labelPixels = mKinect->getLabelPixels().getPixels();
 	if(labelPixels != NULL){
 		fwrite(labelPixels, sizeof(char), depthWidth * depthHeight * 4, f);
 	}

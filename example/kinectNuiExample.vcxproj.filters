@@ -28,9 +28,6 @@
     <ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNui.cpp">
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiCalibration.cpp">
-      <Filter>addons\ofxKinectNui\src</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\testApp.cpp" />
     <ClCompile Include="..\src\kinect\nui\KinectContext.cpp">
@@ -56,9 +53,6 @@
     <ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\SkeletonFrame.h">
       <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxBase3DVideo.h">
-      <Filter>addons\ofxKinectNui\src</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiRecorder.h">
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClInclude>
@@ -66,9 +60,6 @@
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNui.h">
-      <Filter>addons\ofxKinectNui\src</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiCalibration.h">
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClInclude>
     <ClInclude Include="src\testApp.h" />
@@ -80,6 +71,9 @@
     </ClInclude>
     <ClInclude Include="..\src\kinect\nui\KinectListener.h">
       <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ofxBase3DVideo.h">
+      <Filter>addons\ofxKinectNui\src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -103,12 +103,15 @@ namespace kinect {
 			INuiInstance* instance = NULL;
 			HRESULT ret = ::MSR_NuiCreateInstanceByIndex(index, &instance);
 			if (SUCCEEDED(ret)) {
+				lock_.lock();
 				int size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
 					if(kinects_[i]->index_ == instance->InstanceIndex()){
+						lock_.unlock();
 						return instance;
 					}
 				}
+				lock_.unlock();
 			}
 			return instance;
 		}
@@ -123,6 +126,7 @@ namespace kinect {
 				int size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
 					if(0 == wcscmp(kinects_[i]->instanceName_, instance->NuiInstanceName())){
+						lock_.unlock();
 						return instance;
 					}
 				}
