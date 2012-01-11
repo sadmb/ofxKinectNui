@@ -41,6 +41,8 @@ public:
 	 * @param	grabDepth			set false to disable depth capture
 	 * @param	grabLabel			set true to enable label capture, only the first kinect sensor can capture.
 	 * @param	grabSkeleton		set true to enable skeleton capture, only the first kinect sensor can capture. 
+	 * @param	grabCalibratedVideo	set true to enable calibratedVideo capture
+	 * @param	grabLabelCv			set true to enable separated label capture for cv use, only the first kinect sensor can capture.
 	 * @param	useTexture			set false when you don't need texture: you just want to get pixels and draw on openCV etc.
 	 * @param	videoResolution		default is 640x480
 	 * @param	depthResolution		default is 320x240
@@ -49,6 +51,8 @@ public:
 				bool grabDepth = true,
 				bool grabLabel = false,
 				bool grabSkeleton = false,
+				bool grabCalibratedVideo = false,
+				bool grabLabelCv = false,
 				bool useTexture = true,
 				NUI_IMAGE_RESOLUTION videoResolution = NUI_IMAGE_RESOLUTION_640x480,
 				NUI_IMAGE_RESOLUTION depthResolution = NUI_IMAGE_RESOLUTION_320x240);
@@ -162,6 +166,19 @@ public:
 	ofPixels& getLabelPixels();
 
 	/**
+	 * @brief	Get label pixel data of player id
+	 * @param	playerId	You can get whole players' silhouette when set 0, you can get each player's silhouette when set 1-7.
+	 * @return	Label pixel thresholded data
+	 */
+	ofPixels& getLabelPixelsCv(int playerId);
+
+	/**
+	 * @brief	Get label pixel data of all players in array
+	 * @return	Label pixel thresholded data array. labelPixelsCv[0] contains whole players' silhouette, labelPixelsCv[playerId] contains each player's silhouette
+	 */
+	ofPixels* getLabelPixelsCvArray();
+
+	/**
 	 * @brief	Get distance pixel data
 	 * @return	Distance pixel data
 	 */
@@ -228,7 +245,7 @@ public:
 	unsigned short getDistanceAt(const ofPoint& depthPoint);
 
 	/**
-	 * @brief	Get color at the point 
+	 * @brief	Get player index at the point 
 	 * @param	depthX	x position on depth sensor
 	 * @param	depthY	y position on depth sensor
 	 * @return	player index	0 when no player
@@ -281,6 +298,18 @@ public:
 	bool grabsSkeleton();
 
 	/**
+	 * @brief	Does this kinect grab calibrated video?
+	 * @return	true when grabs calibrated video
+	 */
+	bool grabsCalibratedVideo();
+
+	/**
+	 * @brief	Does this kinect grab separated label for cv?
+	 * @return	true when grabs separeted label for cv
+	 */
+	bool grabsLabelCv();
+
+	/**
 	 * @brief	Use texture for drawing?
 	 * @return	true when uses texture
 	 */
@@ -314,6 +343,7 @@ public:
 		kinect.RemoveKinectListener(object);
 	}
 
+	const static int KINECT_PLAYERS_INDEX_NUM = 8;
 
 protected:
 	/**
@@ -335,12 +365,13 @@ protected:
 	ofPixels videoPixels;			///<	video pixels
 	ofPixels depthPixels;			///<	depth pixels
 	ofShortPixels distancePixels;	///<	distance pixels (raw depth pixels data from sensor)
-	ofPixels calibratedVideoPixels;	///<	video pixels adjusted to depth pixels
 	ofPixels labelPixels;			///<	label pixels
+	ofPixels calibratedVideoPixels;	///<	video pixels adjusted to depth pixels
+	ofPixels* labelPixelsCv;		///<	separated label pixels for cv use, labelPixelsCv[0] contains whole players silhouette. labelPixelsCv[playerId] contains each players silhouette.
 
-	ofTexture videoTexture;		///< video texture
-	ofTexture depthTexture;		///< depth texture
-	ofTexture labelTexture;		///< label texture
+	ofTexture videoTexture;				///< video texture
+	ofTexture depthTexture;				///< depth texture
+	ofTexture labelTexture;				///< label texture
 
 	ofPoint** skeletonPoints;	///< joint points of all skeletons
 
@@ -352,6 +383,8 @@ protected:
 	bool bGrabsDepth;				///< grabs depth?
 	bool bGrabsLabel;				///< grabs label?
 	bool bGrabsSkeleton;			///< grabs skeleton?
+	bool bGrabsCalibratedVideo;		///< grabs calibrated video?
+	bool bGrabsLabelCv;				///< grabs separated label for cv?
 	bool bUsesTexture;				///< uses texture?
 	bool bIsFrameNew;				///< frame updated?
 

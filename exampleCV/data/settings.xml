@@ -1,0 +1,6 @@
+<KINECT>
+    <CLIPPING>
+        <NEAR>700</NEAR>
+        <FAR>1700</FAR>
+    </CLIPPING>
+</KINECT>

@@ -114,8 +114,9 @@ protected:
 	 */
 	void calculateLookups(){
 		if(!bCalculatesLookups) {
+			bCalculatesLookups = true;
 			ofLog(OF_LOG_VERBOSE, "Setting up LUT for distance and depth values.");
-		
+			
 			for(int i = 0; i < 65535; i++){
 				if(i == 65534) {
 					depthPixelsLookupNearWhite[i] = 0;
@@ -123,10 +124,15 @@ protected:
 				} else {
 					depthPixelsLookupFarWhite[i] = ofMap(i, nearClippingDistance, farClippingDistance, 0, 255, true);
 					depthPixelsLookupNearWhite[i] = 255 - depthPixelsLookupFarWhite[i];
+					if(depthPixelsLookupFarWhite[i] == 255){
+						depthPixelsLookupFarWhite[i] = 0;
+					}
+					if(depthPixelsLookupNearWhite[i] == 255){
+						depthPixelsLookupNearWhite[i] = 0;
+					}
 				}
 			}
 		}
-		bCalculatesLookups = true;
 	}
 
 

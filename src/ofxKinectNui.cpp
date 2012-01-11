@@ -12,14 +12,16 @@
 /******************************************************************/
 #include "ofxKinectNui.h"
 
-const UINT color[8] = {	0x00FFFFFF,
-						0xFF0000FF,
-						0xFF00FF00,
-						0xFFFF0000,
-						0xFF00FFFF,
-						0xFFFF00FF,
-						0xFFFFFF00,
-						0xFF6600FF};
+const UINT color[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM] = {
+	0x00FFFFFF,	/// no user
+	0xFF0000FF,
+	0xFF00FF00,
+	0xFFFF0000,
+	0xFF00FFFF,
+	0xFFFF00FF,
+	0xFFFFFF00,
+	0xFF6600FF
+};
 
 //---------------------------------------------------------------------------
 ofxKinectNui::ofxKinectNui(){
@@ -32,9 +34,10 @@ ofxKinectNui::ofxKinectNui(){
 	bGrabsDepth = false;
 	bGrabsLabel = false;
 	bGrabsSkeleton = false;
+	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
 	ofxBase3DVideo::initLookups();
-
+	labelPixelsCv = NULL;
 	skeletonPoints = NULL;
 
 	addKinectListener(this, &ofxKinectNui::pluggedFunc, &ofxKinectNui::unpluggedFunc);
@@ -71,6 +74,10 @@ ofxKinectNui::~ofxKinectNui(){
 	if(calibratedVideoPixels.isAllocated()){
 		calibratedVideoPixels.clear();
 	}
+	if(labelPixelsCv != NULL){
+		delete[] labelPixelsCv;
+		labelPixelsCv = NULL;
+	}
 
 	if(skeletonPoints != NULL){
 		delete[] skeletonPoints[0];
@@ -87,6 +94,7 @@ ofxKinectNui::~ofxKinectNui(){
 	bGrabsDepth = false;
 	bGrabsLabel = false;
 	bGrabsSkeleton = false;
+	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
 }
 
@@ -95,14 +103,25 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 						bool grabDepth /*= true*/,
 						bool grabLabel /*= false*/,
 						bool grabSkeleton /*= false*/,
+						bool grabCalibratedVideo /*= false*/,
+						bool grabLabelCv /*= false*/,
 						bool useTexture /*= true*/,
 						NUI_IMAGE_RESOLUTION videoResolution /*= NUI_IMAGE_RESOLUTION_640x480*/,
 						NUI_IMAGE_RESOLUTION depthResolution /*=NUI_IMAGE_RESOLUTION_320x240*/){
 
+	if(grabLabel){
+		grabDepth = true; // grabDepth when grabLabel
+	}
+	if(grabCalibratedVideo){
+		grabDepth = true;
+		grabVideo = true;
+	}
 	bGrabsVideo = grabVideo;
 	bGrabsDepth = grabDepth;
 	bGrabsLabel = grabLabel;
 	bGrabsSkeleton = grabSkeleton;
+	bGrabsCalibratedVideo = grabCalibratedVideo;
+	bGrabsLabelCv = grabLabelCv;
 	bUsesTexture = useTexture;
 	mVideoResolution = videoResolution;
 	mDepthResolution = depthResolution;
@@ -121,9 +140,6 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		return false;
 	}
 
-	if(grabLabel){
-		grabDepth = true; // grabDepth when grabLabel
-	}
 	// set video resolution
 	switch(videoResolution){
 	case NUI_IMAGE_RESOLUTION_1280x1024:
@@ -208,27 +224,41 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		if(!depthPixels.isAllocated()){
 			depthPixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
-		memset(depthPixels.getPixels(), 0, length*sizeof(unsigned char));
+		memset(depthPixels.getPixels(), 0, length * sizeof(unsigned char));
 		if(!distancePixels.isAllocated()){
 			distancePixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
 		memset(distancePixels.getPixels(), 0, length * sizeof(unsigned short));
 
-		if(bGrabsVideo){
+		if(bGrabsCalibratedVideo){
 			if(!calibratedVideoPixels.isAllocated()){
 				calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
 			}
 			memset(calibratedVideoPixels.getPixels(), 0, length * 3 * sizeof(unsigned char));
 		}
 
-		if(bGrabsLabel){
-			if(bUsesTexture){
-				labelTexture.allocate(depthWidth, depthHeight, GL_RGBA);
+		if(bGrabsLabel || bGrabsLabelCv){
+			if(bGrabsLabel){
+				if(bUsesTexture){
+					labelTexture.allocate(depthWidth, depthHeight, GL_RGBA);
+				}
+				if(!labelPixels.isAllocated()){
+					labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
+				}
+				memset(labelPixels.getPixels(), 0, length * 4 * sizeof(unsigned char));
 			}
-			if(!labelPixels.isAllocated()){
-				labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
+
+			if(bGrabsLabelCv){
+				if(labelPixelsCv == NULL){
+					labelPixelsCv = new ofPixels[KINECT_PLAYERS_INDEX_NUM];
+				}
+				for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; i++){
+					if(!labelPixelsCv[i].isAllocated()){
+						labelPixelsCv[i].allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
+					}
+					memset(labelPixelsCv[i].getPixels(), 0, length * sizeof(unsigned char));
+				}
 			}
-			memset(labelPixels.getPixels(), 0, length * 4 * sizeof(unsigned char));
 
 			dwFlags |= NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;
 		}else{
@@ -268,7 +298,7 @@ bool ofxKinectNui::open(){
 		}
 
 		if(bGrabsDepth){
-			if(bGrabsLabel){
+			if(bGrabsLabel || bGrabsLabelCv){
 				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX, mDepthResolution);
 			}else{
 				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH, mDepthResolution);
@@ -325,10 +355,24 @@ void ofxKinectNui::update(){
 		unsigned short playerLabel;
 		for(int x = 0; x < depth.Width(); x++){
 			for(int y = 0; y < depth.Height(); y++){
-				if(bGrabsLabel){
+				if(bGrabsLabel || bGrabsLabelCv){
 					depthbit = depth(x, y) >> 3;
 					playerLabel = depth(x, y) & 0x7;
-					memcpy(labelPixels.getPixels() + (depth.Width() * y + x) * 4, &color[playerLabel], sizeof(char) * 4);
+					if(bGrabsLabel){
+						memcpy(labelPixels.getPixels() + (depth.Width() * y + x) * 4, &color[playerLabel], sizeof(char) * 4);
+					}
+					if(bGrabsLabelCv){
+						for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; i++){
+							unsigned short lb;
+							if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
+								lb = 0xFF;
+								memcpy(labelPixelsCv[i].getPixels() + (depth.Width() * y + x), &lb, sizeof(char));
+							}else{
+								lb = 0x00;
+								memcpy(labelPixelsCv[i].getPixels() + (depth.Width() * y + x), &lb, sizeof(char));
+							}
+						}
+					}
 				}else{
 					depthbit = depth(depth.Width() - x, y);
 				}
@@ -338,7 +382,7 @@ void ofxKinectNui::update(){
 				}else{
 					depthPixels[depth.Width() * y + x] = depthPixelsLookupFarWhite[depthbit];
 				}
-				if(bGrabsVideo){
+				if(bGrabsCalibratedVideo){
 					int depthIndex = depth.Width() * y + x;
 					long vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depth.Width() * y + x, 0) * 3;
 					for(int i = 0; i < 3; i++){
@@ -579,6 +623,7 @@ void ofxKinectNui::drawLabel(const ofRectangle& rect){
 	drawLabel(rect.x, rect.y, rect.width, rect.height);
 }
 
+//---------------------------------------------------------------------------
 void ofxKinectNui::setAngle(int angleInDegrees){
 	if(kinect.IsConnected()){
 		targetAngle = angleInDegrees;
@@ -588,6 +633,7 @@ void ofxKinectNui::setAngle(int angleInDegrees){
 	}
 }
 
+//---------------------------------------------------------------------------
 int ofxKinectNui::getCurrentAngle(){
 	if(kinect.IsConnected()){
 		return (int)kinect.GetAngle();
@@ -597,6 +643,7 @@ int ofxKinectNui::getCurrentAngle(){
 	}
 }
 
+//---------------------------------------------------------------------------
 int ofxKinectNui::getTargetAngle(){
 	return targetAngle;
 }
@@ -619,6 +666,21 @@ ofPixels& ofxKinectNui::getLabelPixels(){
 //---------------------------------------------------------------------------
 ofPixels& ofxKinectNui::getCalibratedVideoPixels(){
 	return calibratedVideoPixels;
+}
+
+//---------------------------------------------------------------------------
+ofPixels& ofxKinectNui::getLabelPixelsCv(int playerId){
+	if(playerId < 0 || playerId >= KINECT_PLAYERS_INDEX_NUM){
+		ofLog(OF_LOG_ERROR, "ofxKinectNui: at getLabelPixelsCv(int playerId). please set 0-7 for playerId.");
+		return labelPixelsCv[0];
+	}else{
+		return labelPixelsCv[playerId];
+	}
+}
+
+//---------------------------------------------------------------------------
+ofPixels* ofxKinectNui::getLabelPixelsCvArray(){
+	return labelPixelsCv;
 }
 
 //---------------------------------------------------------------------------
@@ -733,7 +795,12 @@ unsigned short ofxKinectNui::getDistanceAt(const ofPoint& depthPoint){
 
 //---------------------------------------------------------------------------
 int ofxKinectNui::getPlayerIndexAt(int x, int y) {
-	return labelPixels[depthWidth * y + x];
+	for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; i++){
+		if(labelPixels[depthWidth * y + x] & color[i]){
+			return i;
+		}
+	}
+	return 0;
 }
 
 //---------------------------------------------------------------------------
@@ -779,6 +846,16 @@ bool ofxKinectNui::grabsSkeleton(){
 //---------------------------------------------------------------------------
 bool ofxKinectNui::grabsLabel(){
 	return bGrabsLabel;
+}
+
+//---------------------------------------------------------------------------
+bool ofxKinectNui::grabsCalibratedVideo(){
+	return bGrabsCalibratedVideo;
+}
+
+//---------------------------------------------------------------------------
+bool ofxKinectNui::grabsLabelCv(){
+	return bGrabsLabelCv;
 }
 
 //---------------------------------------------------------------------------

@@ -16,15 +16,14 @@
 void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
-	kinect.init(true, true, true, true); // enable all capture
-//	kinect.init(true, true, false, false, true, NUI_IMAGE_RESOLUTION_640x480, NUI_IMAGE_RESOLUTION_320x240); // default settings.
+	kinect.init(true, true, true, true, true, true, true); // enable all captures
 	kinect.open();
 
 	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
 	
 #ifdef USE_TWO_KINECTS
 	// watch out that only the first kinect can grab label and skeleton.
-	kinect2.init(true, true, false, false, true);
+	kinect2.init(true, true, false, false, false, false, true);
 	kinect2.open();
 #endif
 	ofSetVerticalSync(true);
@@ -34,6 +33,8 @@ void testApp::setup() {
 	bRecord = false;
 	bPlayback = false;
 	bPlugged = kinect.isConnected();
+	nearClipping = kinect.getNearClippingDistance();
+	farClipping = kinect.getFarClippingDistance();
 
 	bDrawCalibratedTexture = false;
 
@@ -113,6 +114,8 @@ void testApp::draw() {
 	reportStream << " (press: < >), fps: " << ofGetFrameRate() << endl
 				 << "press 'c' to close the stream and 'o' to open it again, stream is: " << kinect.isOpened() << endl
 				 << "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl
+				 << "press LEFT and RIGHT to change the far clipping distance: " << farClipping << " mm" << endl
+				 << "press '+' and '-' to change the near clipping distance: " << nearClipping << " mm" << endl
 				 << "press 'r' to record and 'p' to playback, record is: " << bRecord << ", playback is: " << bPlayback << endl
 				 << "press 'q' to show calibratedRGB sample: " << bDrawCalibratedTexture;
 	ofDrawBitmapString(reportStream.str(), 20, 652);
@@ -207,6 +210,30 @@ void testApp::keyPressed (int key) {
 			angle = -27;
 		}
 		kinect.setAngle(angle);
+		break;
+	case OF_KEY_LEFT:
+		if(farClipping > nearClipping + 10){
+			farClipping -= 10;
+			kinectSource->setFarClippingDistance(farClipping);
+		}
+		break;
+	case OF_KEY_RIGHT:
+		if(farClipping < 4000){
+			farClipping += 10;
+			kinectSource->setFarClippingDistance(farClipping);
+		}
+		break;
+	case '-':
+		if(nearClipping >= 10){
+			nearClipping -= 10;
+			kinectSource->setNearClippingDistance(nearClipping);
+		}
+		break;
+	case '+':
+		if(nearClipping < farClipping - 10){
+			nearClipping += 10;
+			kinectSource->setNearClippingDistance(nearClipping);
+		}
 		break;
 	}
 }

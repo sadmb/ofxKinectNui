@@ -69,8 +69,8 @@ class testApp : public ofBaseApp {
 		bool bPlugged;
 		bool bUnplugged;
 		
-		float nearClipping;
-		float farClipping;
+		unsigned short nearClipping;
+		unsigned short farClipping;
 		int angle;
 		
 		int mRotationX, mRotationY;
