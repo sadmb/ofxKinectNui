@@ -71,25 +71,27 @@ void testApp::update() {
 //--------------------------------------------------------------
 void testApp::draw() {
 	ofBackground(100, 100, 100);
-	depthImage.draw(20, 20);
-	thresholdedImage.draw(360, 20);
+	depthImage.draw(20, 20);		/// normal depth images
+	thresholdedImage.draw(360, 20);	/// thresholded depth images
 
 	ofSetColor(0);
 	ofFill();
 	ofRect(700, 20, 320, 240);
 	ofRect(700, 280, 320, 240);
-	ofRect(360, 280, 320, 240);
+	ofRect(20, 280, 320, 240);
 	ofSetColor(255);
 
-	labelImages[0].draw(20, 280);	/// whole players' silhouette
 	ofEnableAlphaBlending();
-	colorImage.draw(360, 280);		/// nomal label image
+	colorImage.draw(20, 280);		/// normal label images
 	ofDisableAlphaBlending();
+	labelImages[0].draw(360, 280);	/// whole players' silhouette
 
+	// contours from depth images
 	for(int i = 0; i < contourFinderDepth.nBlobs; i++){
 		contourFinderDepth.blobs[i].draw(700, 20);
 	}
 
+	// contours from label images
 	for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM - 1; i++){
 		for(int j = 0; j < contourFinders[i].nBlobs; j++){
 			contourFinders[i].blobs[j].draw(700, 280);
