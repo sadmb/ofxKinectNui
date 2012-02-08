@@ -1267,7 +1267,7 @@ int ofxKinectNui::getDepthResolutionHeight(){
 	@return	Scaled point
 */
 ofPoint ofxKinectNui::calculateScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
-	float px = skeletonPoint.x * width;
-	float py = skeletonPoint.y * height;
+	float px = skeletonPoint.x / (float)depthWidth * width;
+	float py = skeletonPoint.y / (float)depthHeight * height;
 	return ofPoint(px, py);
 }
