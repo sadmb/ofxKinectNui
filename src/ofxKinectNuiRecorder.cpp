@@ -1,37 +1,35 @@
-/******************************************************************/
-/**
- * @file	ofxKinectNuiRecorder.cpp
- * @brief	Recorder for Kinect Official Sensor
- * @note
- * @todo
- * @bug	
- * @reference	ofxKinectRecorder.cpp created by arturo 03/01/2011
- *
- * @author	sadmb
- * @date	Oct. 26, 2011
- */
-/******************************************************************/
 #include "ofxKinectNuiRecorder.h"
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Constructor
+*/
 ofxKinectNuiRecorder::ofxKinectNuiRecorder() {
 	f=NULL;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Destructor
+*/
 ofxKinectNuiRecorder::~ofxKinectNuiRecorder() {
 	close();
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Setup recorder
+	@param	kinect		which kinect to record
+	@param	filename	filename to output data
+*/
 void ofxKinectNuiRecorder::setup(ofxKinectNui& kinect, const string & filename){
 	mKinect = &kinect;
 	mVideoResolution = mKinect->getVideoResolution();
 	mDepthResolution = mKinect->getDepthResolution();
 	switch(mVideoResolution){
-	case NUI_IMAGE_RESOLUTION_1280x1024:
+	case NUI_IMAGE_RESOLUTION_1280x960:
 		width = 1280;
-		height = 1024;
+		height = 960;
 		break;
 	case NUI_IMAGE_RESOLUTION_640x480:
 		width = 640;
@@ -57,9 +55,9 @@ void ofxKinectNuiRecorder::setup(ofxKinectNui& kinect, const string & filename){
 		depthWidth = 80;
 		depthHeight = 60;
 		break;
-	case NUI_IMAGE_RESOLUTION_1280x1024:
+	case NUI_IMAGE_RESOLUTION_1280x960:
 	default:
-		string error = "Invalid depth resolution: select 320x240, 80x60 or you must disable grabLabel when you select 640x480.";
+		string error = "Invalid depth resolution: select 640x480, 320x240 or 80x60.";
 		ofLog(OF_LOG_ERROR, "ofxKinectNui: " + error);
 		return;
 	}
@@ -68,7 +66,7 @@ void ofxKinectNuiRecorder::setup(ofxKinectNui& kinect, const string & filename){
 
 	skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
 
-	unsigned char bit = ((unsigned int)mKinect->grabsVideo() << 3) | ((unsigned int)mKinect->grabsDepth() << 2) | ((unsigned int)mKinect->grabsLabel() << 1) | ((unsigned int)mKinect->grabsSkeleton());
+	unsigned char bit = ((unsigned int)mKinect->grabsVideo() << 4) | ((unsigned int)mKinect->grabsDepth() << 3) | ((unsigned int)mKinect->grabsLabel() << 2) | ((unsigned int)mKinect->grabsSkeleton() << 1) | ((unsigned int)mKinect->grabsAudio());
 	fwrite(&bit, sizeof(char), 1, f);
 	int bit2 = (int)mKinect->getVideoResolution();
 	fwrite(&bit2, sizeof(int), 1, f);
@@ -81,6 +79,9 @@ void ofxKinectNuiRecorder::setup(ofxKinectNui& kinect, const string & filename){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Close the recorder
+*/
 void ofxKinectNuiRecorder::close(){
 	if(!f){
 		return;
@@ -93,10 +94,12 @@ void ofxKinectNuiRecorder::close(){
 		delete[] skeletons;
 		skeletons = NULL;
 	}
-
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Update recording
+*/
 void ofxKinectNuiRecorder::update() {
 	if(!f){
 		return;
@@ -137,8 +140,22 @@ void ofxKinectNuiRecorder::update() {
 		}
 		fwrite(skeletons, sizeof(float), kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
 	}
+
+	if(mKinect->grabsAudio()){
+		float temp1 = mKinect->getAudioBeamAngle();
+		fwrite(&temp1, sizeof(float), 1, f);
+		float temp2 = mKinect->getAudioAngle();
+		fwrite(&temp2, sizeof(float), 1, f);
+		float temp3 = mKinect->getAudioAngleConfidence();
+		fwrite(&temp3, sizeof(float), 1, f);
+	}
 }
 
+//---------------------------------------------------------------------------
+/**
+	@brief		Is recording?
+	@return		true if is recording 
+*/
 bool ofxKinectNuiRecorder::isActive(){
 	return f;
 }

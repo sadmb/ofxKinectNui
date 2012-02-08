@@ -1,73 +1,81 @@
-﻿/******************************************************************/
-/**
- * @file	ImageFrame.cpp
- * @brief	Image frame for kinect video/ depth camera
- * @note	
- * @todo
- * @bug	
- * @see		https://github.com/sadmb/kinect_sdk_sandbox/tree/master/kinect_cpp_wrapper
- *
- * @author	kaorun55
- * @author	sadmb
- * @date	Oct. 26, 2011 modified
- */
-/******************************************************************/
-#include "kinect/nui/ImageFrame.h"
+﻿#include "kinect/nui/ImageFrame.h"
 #include "kinect/nui/ImageStream.h"
 
 namespace kinect {
 	namespace nui {
 		//----------------------------------------------------------
+        /**
+			@brief	Constructor
+		*/
         ImageFrame::ImageFrame( ImageStream& imageStream, DWORD dwMillisecondsToWait /*= 0*/ )
             : imageStream_( imageStream )
             , imageFrame_( imageStream.GetNextFrame( dwMillisecondsToWait ) )
         {
-			if(imageFrame_ != NULL){
-	            imageFrame_->pFrameTexture->LockRect( 0, &lockedRect_, 0, 0 );
+			if(imageFrame_.pFrameTexture != NULL){
+	            imageFrame_.pFrameTexture->LockRect( 0, &lockedRect_, NULL, 0 );
 			}
         }
 
 		//----------------------------------------------------------
+        /**
+			@brief	Destructor
+		*/
         ImageFrame::~ImageFrame()
         {
+			if(imageFrame_.pFrameTexture != NULL){
+				imageFrame_.pFrameTexture->UnlockRect(0);
+			}
             imageStream_.ReleaseFrame( imageFrame_ );
         }
  
 		//----------------------------------------------------------
+		/**
+			@brief	Get the width
+		*/
         UINT ImageFrame::Width() const
         {
-			// Kinect SDK beta2 compatible, Nov. 2, 2011
             NUI_SURFACE_DESC desc = { 0 };
-			if(imageFrame_ != NULL){
-	            imageFrame_->pFrameTexture->GetLevelDesc( 0, &desc );
+			if(imageFrame_.pFrameTexture != NULL){
+	            imageFrame_.pFrameTexture->GetLevelDesc( 0, &desc );
 			}
             return desc.Width;
         }
 
 		//----------------------------------------------------------
+		/**
+			@brief	Get the hight
+		*/
         UINT ImageFrame::Height() const
         {
-			// Kinect SDK beta2 compatible, Nov. 2, 2011
             NUI_SURFACE_DESC desc = { 0 };
-			if(imageFrame_ != NULL){
-	            imageFrame_->pFrameTexture->GetLevelDesc( 0, &desc );
+			if(imageFrame_.pFrameTexture != NULL){
+	            imageFrame_.pFrameTexture->GetLevelDesc( 0, &desc );
 			}
             return desc.Height;
         }
  
 
 		//----------------------------------------------------------
+        /**
+			@brief	Constructor
+		*/
         VideoFrame::VideoFrame( ImageStream& imageStream, DWORD dwMillisecondsToWait /*= 0*/ )
             : ImageFrame( imageStream, dwMillisecondsToWait )
         {
         }
 
 		//----------------------------------------------------------
+        /**
+			@brief	Destructor
+		*/
         VideoFrame::~VideoFrame()
         {
         }
 
 		//----------------------------------------------------------
+		/**
+			@brief	Data cordinated
+		*/
         UINT VideoFrame::operator () ( UINT x, UINT y )
         {
             UINT* video = (UINT*)lockedRect_.pBits;
@@ -76,22 +84,31 @@ namespace kinect {
 
     
 		//----------------------------------------------------------
+        /**
+			@brief	Constructor
+		*/
         DepthFrame::DepthFrame( ImageStream& imageStream, DWORD dwMillisecondsToWait /*= 0*/ )
             : ImageFrame( imageStream, dwMillisecondsToWait )
         {
         }
 
 		//----------------------------------------------------------
+        /**
+			@brief	Destructor
+		*/
         DepthFrame::~DepthFrame()
         {
         }
 
 		//----------------------------------------------------------
+		/**
+			@brief	Data cordinated
+		*/
         USHORT DepthFrame::operator () ( UINT x, UINT y )
         {
             USHORT* depth = (USHORT*)lockedRect_.pBits;
             UCHAR* d = (UCHAR*)&depth[(Width() * y) + x];
             return  (USHORT)(d[0] | d[1] << 8 );
         }
-    }
-}
+    } // namespace nui
+} // namespace kinect

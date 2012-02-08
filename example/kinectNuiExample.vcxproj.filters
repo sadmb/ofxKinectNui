@@ -33,6 +33,9 @@
     <ClCompile Include="..\src\kinect\nui\KinectContext.cpp">
       <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\kinect\nui\AudioStream.cpp">
+      <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\addons\ofxKinectNui\src\win32\Event.h">
@@ -63,9 +66,6 @@
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClInclude>
     <ClInclude Include="src\testApp.h" />
-    <ClInclude Include="..\src\win32\CppPreprocessor.h">
-      <Filter>addons\ofxKinectNui\src\win32</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\kinect\nui\KinectContext.h">
       <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
     </ClInclude>
@@ -74,6 +74,21 @@
     </ClInclude>
     <ClInclude Include="..\src\ofxBase3DVideo.h">
       <Filter>addons\ofxKinectNui\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kinect\nui\AudioStream.h">
+      <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kinect\nui\StaticMediaBuffer.h">
+      <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kinect\nui\WaveFileWriter.h">
+      <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\win32\SpinLock.h">
+      <Filter>addons\ofxKinectNui\src\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kinect\nui\WaveOutput.h">
+      <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

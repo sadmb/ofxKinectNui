@@ -1,15 +1,3 @@
-/******************************************************************/
-/**
- * @file	ofxKinectNui.cpp
- * @brief	Kinect Official Sensor wrapper for oF
- * @note
- * @todo
- * @bug	
- *
- * @author	sadmb
- * @date	Oct. 26, 2011
- */
-/******************************************************************/
 #include "ofxKinectNui.h"
 
 const UINT color[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM] = {
@@ -30,6 +18,7 @@ ofxKinectNui::ofxKinectNui(){
 	
 	bIsInited = false;
 	bIsOpened = false;
+	bIsNearmode = false;
 	bGrabsVideo = false;
 	bGrabsDepth = false;
 	bGrabsLabel = false;
@@ -90,6 +79,7 @@ ofxKinectNui::~ofxKinectNui(){
 
 	bIsInited = false;
 	bIsOpened = false;
+	bIsNearmode = false;
 	bGrabsVideo = false;
 	bGrabsDepth = false;
 	bGrabsLabel = false;
@@ -99,8 +89,22 @@ ofxKinectNui::~ofxKinectNui(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	initialize kinect sensor
+	@param	grabVideo			set false to disable video capture
+	@param	grabDepth			set false to disable depth capture
+	@param	grabAudio			set true to enable audio capture
+	@param	grabLabel			set true to enable label capture, only the first kinect sensor can capture.
+	@param	grabSkeleton		set true to enable skeleton capture, only the first kinect sensor can capture. 
+	@param	grabCalibratedVideo	set true to enable calibratedVideo capture
+	@param	grabLabelCv			set true to enable separated label capture for cv use, only the first kinect sensor can capture.
+	@param	useTexture			set false when you don't need texture: you just want to get pixels and draw on openCV etc.
+	@param	videoResolution		default is 640x480
+	@param	depthResolution		default is 320x240
+	*/
 bool ofxKinectNui::init(bool grabVideo /*= true*/,
 						bool grabDepth /*= true*/,
+						bool grabAudio /*= false*/,
 						bool grabLabel /*= false*/,
 						bool grabSkeleton /*= false*/,
 						bool grabCalibratedVideo /*= false*/,
@@ -110,14 +114,21 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 						NUI_IMAGE_RESOLUTION depthResolution /*=NUI_IMAGE_RESOLUTION_320x240*/){
 
 	if(grabLabel){
-		grabDepth = true; // grabDepth when grabLabel
+		if(!grabDepth){
+			ofLog(OF_LOG_WARNING, "ofxKinectNui: Please set grabDepth TRUE when grab label.");
+			grabDepth = true; // grabDepth when grabLabel
+		}
 	}
 	if(grabCalibratedVideo){
-		grabDepth = true;
-		grabVideo = true;
+		if(!grabDepth || !grabVideo){
+			ofLog(OF_LOG_WARNING, "ofxKinectNui: Please set grabVideo and grabDepth TRUE when grab calibrated video.");
+			grabDepth = true;
+			grabVideo = true;
+		}
 	}
 	bGrabsVideo = grabVideo;
 	bGrabsDepth = grabDepth;
+	bGrabsAudio = grabAudio;
 	bGrabsLabel = grabLabel;
 	bGrabsSkeleton = grabSkeleton;
 	bGrabsCalibratedVideo = grabCalibratedVideo;
@@ -142,9 +153,9 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 
 	// set video resolution
 	switch(videoResolution){
-	case NUI_IMAGE_RESOLUTION_1280x1024:
+	case NUI_IMAGE_RESOLUTION_1280x960:
 		width = 1280;
-		height = 1024;
+		height = 960;
 		break;
 	case NUI_IMAGE_RESOLUTION_640x480:
 		width = 640;
@@ -169,14 +180,8 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 	// set depth resolution
 	switch(depthResolution){
 	case NUI_IMAGE_RESOLUTION_640x480:
-		if(grabLabel){
-			string error = "Invalid depth resolution: select 320x240, 80x60 or you must disable grabLabel when you select 640x480.";
-			ofLog(OF_LOG_ERROR, "ofxKinectNui: " + error);
-			return false;
-		}else{
-			depthWidth = 640;
-			depthHeight = 480;
-		}
+		depthWidth = 640;
+		depthHeight = 480;
 		break;
 	case NUI_IMAGE_RESOLUTION_320x240:
 		depthWidth = 320;
@@ -186,7 +191,7 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		depthWidth = 80;
 		depthHeight = 60;
 		break;
-	case NUI_IMAGE_RESOLUTION_1280x1024:
+	case NUI_IMAGE_RESOLUTION_1280x960:
 	default:
 		if(grabDepth){
 			string error = "Invalid depth resolution: select 320x240, 80x60 or you must disable grabLabel when you select 640x480.";
@@ -265,6 +270,9 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 			dwFlags |= NUI_INITIALIZE_FLAG_USES_DEPTH;
 		}
 	}
+	if(bGrabsAudio){
+		dwFlags |= NUI_INITIALIZE_FLAG_USES_AUDIO;
+	}
 	if(bGrabsSkeleton){
 		if(skeletonPoints == NULL){
 			skeletonPoints = new ofPoint*[kinect::nui::SkeletonFrame::SKELETON_COUNT];
@@ -286,8 +294,12 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 }
 
 //---------------------------------------------------------------------------
-bool ofxKinectNui::open(){
+/**
+	@brief	open stream
+*/
+bool ofxKinectNui::open(bool nearmode /*= false */){
 	if(kinect.IsConnected() && !isOpened()){
+		bIsNearmode = nearmode;
 		if(isInited()){
 			if(!kinect.IsInited()){
 				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsSkeleton, bUsesTexture, mVideoResolution, mDepthResolution);
@@ -296,13 +308,15 @@ bool ofxKinectNui::open(){
 		if(bGrabsVideo){
 			kinect.VideoStream().Open(NUI_IMAGE_TYPE_COLOR, mVideoResolution);
 		}
-
 		if(bGrabsDepth){
 			if(bGrabsLabel || bGrabsLabelCv){
-				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX, mDepthResolution);
+				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX, mDepthResolution, nearmode);
 			}else{
-				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH, mDepthResolution);
+				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH, mDepthResolution, nearmode);
 			}
+		}
+		if(bGrabsAudio){
+			kinect.AudioStream().Open();
 		}
 
 		bIsOpened = true;
@@ -313,16 +327,21 @@ bool ofxKinectNui::open(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	close stream
+*/
 void ofxKinectNui::close(){
 	if(isOpened()){
-		kinect.Close();
-
+		kinect.Shutdown();
 		bIsOpened = false;
 		bIsFrameNew = false;
 	}
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	update stream data.
+*/
 void ofxKinectNui::update(){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
@@ -399,6 +418,13 @@ void ofxKinectNui::update(){
 		}
 	}
 
+	if(bGrabsAudio){
+		soundBuffer = kinect.AudioStream().Read();
+		audioBeamAngle = (float)kinect.AudioStream().GetAudioBeamAngle();
+		audioAngle = (float)kinect.AudioStream().GetAudioAngle();
+		audioAngleConfidence = (float)kinect.AudioStream().GetAudioAngleConfidence();
+	}
+
 	if(bUsesTexture){
 		if(bGrabsVideo){
 			videoTexture.loadData(videoPixels);
@@ -414,16 +440,28 @@ void ofxKinectNui::update(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	listener function when kinect is plugged.
+*/
 void ofxKinectNui::pluggedFunc(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	listener function when kinect is unplugged.
+*/
 void ofxKinectNui::unpluggedFunc(){
-	bIsOpened = false;
-	bIsFrameNew = false;
+	close();
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video images from camera
+	@param	x	X position to draw
+	@param	y	Y position to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::draw(float x, float y, float w, float h){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
@@ -437,26 +475,52 @@ void ofxKinectNui::draw(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video images from camera
+	@param	x	X position to draw
+	@param	y	Y position to draw
+*/
 void ofxKinectNui::draw(float x, float y){
 	draw(x, y, width, height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video images from camera
+	@param	point	The point to draw
+*/
 void ofxKinectNui::draw(const ofPoint& point){
 	draw(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video images from camera
+	@param	point	The point to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::draw(const ofPoint& point, float w, float h){
 	draw(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video images from camera
+	@param	rect	The rectangle area to draw
+*/
 void ofxKinectNui::draw(const ofRectangle& rect){
 	draw(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth images
+	@param	x	X position to draw
+	@param	y	Y position to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::drawDepth(float x, float y, float w, float h){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
@@ -470,26 +534,50 @@ void ofxKinectNui::drawDepth(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth images
+	@param	x	X position to draw
+	@param	y	Y position to draw
+*/
 void ofxKinectNui::drawDepth(float x, float y){
 	draw(x, y, depthWidth, depthHeight);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth images
+	@param	point	The point to draw
+*/
 void ofxKinectNui::drawDepth(const ofPoint& point){
 	draw(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth images
+	@param	point	The point to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::drawDepth(const ofPoint& point, float w, float h){
 	draw(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth images
+	@param	rect	The rectangle area to draw
+*/
 void ofxKinectNui::drawDepth(const ofRectangle& rect){
 	draw(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton images
+	@param	x	X position to draw
+	@param	y	Y position to draw
+*/
 void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
@@ -503,7 +591,7 @@ void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
 			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
 				if( skeleton[i].TrackingState() == NUI_SKELETON_TRACKED){
 					for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
-						kinect::nui::SkeletonData::Point p = skeleton[i].TransformSkeletonToDepthImage(j);
+						kinect::nui::SkeletonData::SkeletonPoint p = skeleton[i].TransformSkeletonToDepthImage(j);
 						skeletonPoints[i][j] = ofPoint(p.x, p.y, p.depth);
 					}
 
@@ -571,26 +659,52 @@ void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton images
+	@param	x	X position to draw
+	@param	y	Y position to draw
+*/
 void ofxKinectNui::drawSkeleton(float x, float y){
 	drawSkeleton(x, y, width, height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton images
+	@param	point	The point to draw
+*/
 void ofxKinectNui::drawSkeleton(const ofPoint& point){
 	drawSkeleton(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton images
+	@param	point	The point to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::drawSkeleton(const ofPoint& point, float w, float h){
 	drawSkeleton(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton images
+	@param	rect	The rectangle area to draw
+*/
 void ofxKinectNui::drawSkeleton(const ofRectangle& rect){
 	drawSkeleton(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label images
+	@param	x	X position to draw
+	@param	y	Y position to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::drawLabel(float x, float y, float w, float h){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
@@ -604,26 +718,49 @@ void ofxKinectNui::drawLabel(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label images
+	@param	x	X position to draw
+	@param	y	Y position to draw
+*/
 void ofxKinectNui::drawLabel(float x, float y){
 	drawLabel(x, y, width, height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label images
+	@param	point	The point to draw
+*/
 void ofxKinectNui::drawLabel(const ofPoint& point){
 	drawLabel(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label images
+	@param	point	The point to draw
+	@param	w	width of drawing area
+	@param	h	height of drawing area
+*/
 void ofxKinectNui::drawLabel(const ofPoint& point, float w, float h){
 	drawLabel(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label images
+	@param	rect	The rectangle area to draw
+*/
 void ofxKinectNui::drawLabel(const ofRectangle& rect){
 	drawLabel(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Set angle of Kinect elevation
+	@param	angleInDegrees	kinect tilt angle in degrees
+*/
 void ofxKinectNui::setAngle(int angleInDegrees){
 	if(kinect.IsConnected()){
 		targetAngle = angleInDegrees;
@@ -634,6 +771,10 @@ void ofxKinectNui::setAngle(int angleInDegrees){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get current angle of Kinect
+	@return	Current angle
+*/
 int ofxKinectNui::getCurrentAngle(){
 	if(kinect.IsConnected()){
 		return (int)kinect.GetAngle();
@@ -644,31 +785,56 @@ int ofxKinectNui::getCurrentAngle(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get target angle of Kinect
+	@return	Target angle
+*/
 int ofxKinectNui::getTargetAngle(){
 	return targetAngle;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get video pixel data
+	@return	Video pixel RGB data
+*/
 ofPixels& ofxKinectNui::getVideoPixels(){
 	return videoPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get depth pixel data
+	@return	Depth pixel gray scale data
+*/
 ofPixels& ofxKinectNui::getDepthPixels(){
 	return depthPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get label pixel data
+	@return	Label pixel RGBA data
+*/
 ofPixels& ofxKinectNui::getLabelPixels(){
 	return labelPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get video pixel data adjusted to depth pixel data
+	@return	Calibrated video pixel RGB data
+*/
 ofPixels& ofxKinectNui::getCalibratedVideoPixels(){
 	return calibratedVideoPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get label pixel data of player id
+	@param	playerId	You can get whole players' silhouette when set 0, you can get each player's silhouette when set 1-7.
+	@return	Label pixel thresholded data
+*/
 ofPixels& ofxKinectNui::getLabelPixelsCv(int playerId){
 	if(playerId < 0 || playerId >= KINECT_PLAYERS_INDEX_NUM){
 		ofLog(OF_LOG_ERROR, "ofxKinectNui: at getLabelPixelsCv(int playerId). please set 0-7 for playerId.");
@@ -679,16 +845,37 @@ ofPixels& ofxKinectNui::getLabelPixelsCv(int playerId){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get label pixel data of all players in array
+	@return	Label pixel thresholded data array. labelPixelsCv[0] contains whole players' silhouette, labelPixelsCv[playerId] contains each player's silhouette
+*/
 ofPixels* ofxKinectNui::getLabelPixelsCvArray(){
 	return labelPixelsCv;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get distance pixel data
+	@return	Distance pixel data
+*/
 ofShortPixels& ofxKinectNui::getDistancePixels(){
 	return distancePixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get sound buffer
+	@return	Sound buffer
+*/
+std::vector<BYTE> ofxKinectNui::getSoundBuffer(){
+	return soundBuffer;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get video texture
+	@return	Video texture
+*/
 ofTexture& ofxKinectNui::getVideoTextureReference(){
 	if(!videoTexture.isAllocated()){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getTextureReference - video texture is not allocated");
@@ -697,6 +884,10 @@ ofTexture& ofxKinectNui::getVideoTextureReference(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get depth texture
+	@return	Dideo texture
+*/
 ofTexture& ofxKinectNui::getDepthTextureReference(){
 	if(!depthTexture.isAllocated()){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getDepthTextureReference - depth texture is not allocated");
@@ -705,6 +896,10 @@ ofTexture& ofxKinectNui::getDepthTextureReference(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get label texture
+	@return	Label texture
+*/
 ofTexture& ofxKinectNui::getLabelTextureReference(){
 	if(!labelTexture.isAllocated()){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getLabelTextureReference - label texture is not allocated");
@@ -714,6 +909,10 @@ ofTexture& ofxKinectNui::getLabelTextureReference(){
 
 
 //---------------------------------------------------------------------------
+/**
+	@brief	skeleton point data
+	@return	map data of playerId and its skeleton points
+*/
 ofPoint** ofxKinectNui::getSkeletonPoints(){
 	if(!bGrabsSkeleton){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getSkeletonPoints - skeleton is not grabbed.");
@@ -722,6 +921,12 @@ ofPoint** ofxKinectNui::getSkeletonPoints(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get color at the point 
+	@param	x
+	@param	y
+	@return	ofColor of the point
+*/
 ofColor ofxKinectNui::getColorAt(int x, int y){
 	ofColor c;
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
@@ -745,11 +950,22 @@ ofColor ofxKinectNui::getColorAt(int x, int y){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get color at the point 
+	@param	point
+	@return	ofColor of the point
+*/
 ofColor ofxKinectNui::getColorAt(const ofPoint& point){
 	return getColorAt(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get color adjusted at the depth point 
+	@param	depthX	x position on depth images
+	@param	depthY	y position on depth images
+	@return	ofColor of the point
+*/
 ofColor ofxKinectNui::getCalibratedColorAt(int depthX, int depthY){
 	ofColor c;
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
@@ -773,27 +989,55 @@ ofColor ofxKinectNui::getCalibratedColorAt(int depthX, int depthY){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get color adjusted at the depth point 
+	@param	depthPoint	position on depth images
+	@return	ofColor of the point
+*/
 ofColor ofxKinectNui::getCalibratedColorAt(const ofPoint & depthPoint){
 	return getCalibratedColorAt(depthPoint.x, depthPoint.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get real world scale at the depth point
+	@param	depthX	x position on depth sensor
+	@param	depthY	y position on depth sensor
+	@return	ofVec3f	real world scale
+*/
 ofVec3f ofxKinectNui::getWorldCoordinateFor(int depthX, int depthY){
 	const double depthZ = distancePixels[depthWidth * depthX + depthY]/1000.0;
 	return ofxBase3DVideo::getWorldCoordinateFor(depthX, depthY, depthZ);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get color at the point 
+	@param	depthX	x position on depth images
+	@param	depthY	y position on depth images
+	@return	distance (mm)
+*/
 unsigned short ofxKinectNui::getDistanceAt(int depthX, int depthY){
 	return distancePixels[depthY * depthWidth + depthX];
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get color at the point 
+	@param	depthPoint	position on depth images
+	@return	distance (mm)
+*/
 unsigned short ofxKinectNui::getDistanceAt(const ofPoint& depthPoint){
 	return getDistanceAt(depthPoint.x, depthPoint.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get player index at the point 
+	@param	depthX	x position on depth sensor
+	@param	depthY	y position on depth sensor
+	@return	player index	0 when no player
+*/
 int ofxKinectNui::getPlayerIndexAt(int x, int y) {
 	for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; i++){
 		if(labelPixels[depthWidth * y + x] & color[i]){
@@ -804,96 +1048,224 @@ int ofxKinectNui::getPlayerIndexAt(int x, int y) {
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get player index at the point 
+	@param	depthPoint	position on depth sensor
+	@return	player index	0 when no player
+*/
 int ofxKinectNui::getPlayerIndexAt(const ofPoint& point){
 	return getPlayerIndexAt(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get player index at the point 
+	@param	depthPoint	position on depth sensor
+	@return	player index	0 when no player
+*/
+float ofxKinectNui::getAudioBeamAngle(){
+	return audioBeamAngle;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get player index at the point 
+	@param	depthPoint	position on depth sensor
+	@return	player index	0 when no player
+*/
+float ofxKinectNui::getAudioAngle(){
+	return audioAngle;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get player index at the point 
+	@param	depthPoint	position on depth sensor
+	@return	player index	0 when no player
+*/
+float ofxKinectNui::getAudioAngleConfidence(){
+	return audioAngleConfidence;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the frame is updated
+	@return	true when frame is updated
+*/
 bool ofxKinectNui::isFrameNew(){
 	return bIsFrameNew;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether this kinect device is initialized
+	@return	true when kinect is initialized
+*/
 bool ofxKinectNui::isInited(){
 	return bIsInited;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether this kinect device is connected
+	@return	true when kinect is recognized
+*/
 bool ofxKinectNui::isConnected(){
 	return kinect.IsConnected();
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether this kinect stream is opened
+	@return	true when stream is opened
+*/
 bool ofxKinectNui::isOpened(){
 	return bIsOpened;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether this kinect depth sensor is nearmode
+	@return	true when depth sensor is nearmode
+*/
+bool ofxKinectNui::isNearmode(){
+	return bIsNearmode;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs video stream
+	@return	true when grabs video
+*/
 bool ofxKinectNui::grabsVideo(){
 	return bGrabsVideo;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs depth stream
+	@return	true when grabs depth
+*/
 bool ofxKinectNui::grabsDepth(){
 	return bGrabsDepth;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs skeleton
+	@return	true when grabs skeleton
+*/
 bool ofxKinectNui::grabsSkeleton(){
 	return bGrabsSkeleton;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs label data
+	@return	true when grabs label
+*/
 bool ofxKinectNui::grabsLabel(){
 	return bGrabsLabel;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs audio data
+	@return	true when grabs audio
+*/
+bool ofxKinectNui::grabsAudio(){
+	return bGrabsAudio;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs calibrated video stream
+	@return	true when grabs calibrated video
+*/
 bool ofxKinectNui::grabsCalibratedVideo(){
 	return bGrabsCalibratedVideo;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Determines whether the kinect grabs separeted label data for cv
+	 * @return	true when grabs separeted label for cv
+*/
 bool ofxKinectNui::grabsLabelCv(){
 	return bGrabsLabelCv;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Set uses texture for drawing
+	@return	true when uses texture
+*/
 void ofxKinectNui::setUsesTexture(bool bUse){
 	bUsesTexture = bUse;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Gets video resolution
+	@return	video image resolution
+*/
 NUI_IMAGE_RESOLUTION ofxKinectNui::getVideoResolution(){
 	return mVideoResolution;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Gets depth resolution
+	@return	depth image resolution
+*/
 NUI_IMAGE_RESOLUTION ofxKinectNui::getDepthResolution(){
 	return mDepthResolution;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Gets width of video resolution
+	@return	width
+*/
 int ofxKinectNui::getVideoResolutionWidth(){
 	return width;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Gets height of video resolution
+	@return	height
+*/
 int ofxKinectNui::getVideoResolutionHeight(){
 	return height;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Gets width of depth resolution
+	@return	width
+*/
 int ofxKinectNui::getDepthResolutionWidth(){
 	return depthWidth;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Gets height of depth resolution
+	@return	height
+*/
 int ofxKinectNui::getDepthResolutionHeight(){
 	return depthHeight;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Calculate skeleton points
+	@param	point	0.0-1.0 scaled point
+	@param	width
+	@param	height
+	@return	Scaled point
+*/
 ofPoint ofxKinectNui::calculateScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
 	float px = skeletonPoint.x * width;
 	float py = skeletonPoint.y * height;

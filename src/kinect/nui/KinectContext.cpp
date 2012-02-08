@@ -15,14 +15,19 @@
 
 namespace kinect {
 	namespace nui {
-
 		//----------------------------------------------------------
+		/**
+			@brief	Constructor
+		*/
 		KinectContext::KinectContext()
 		{
-			::MSR_NuiSetDeviceStatusCallback(&StatusProcThunk);
+			::NuiSetDeviceStatusCallback(&StatusProcThunk, this);
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Destructor
+		*/
 		KinectContext::~KinectContext()
 		{
 			ShutdownAll();
@@ -30,24 +35,30 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
-		/*static*/ void CALLBACK KinectContext::StatusProcThunk(const NuiStatusData* pStatusData)
+		/**
+			@brief	Callback function when kinect status changed.
+		*/
+		/*static*/ void CALLBACK KinectContext::StatusProcThunk(HRESULT hrStatus, const OLECHAR* instanceName, const OLECHAR* uniqueDeviceName, void* pUserData)
 		{
-			KinectContext::GetContext().StatusProc(pStatusData);
+			KinectContext::GetContext().StatusProc(hrStatus, instanceName, uniqueDeviceName);
 		}
 		
 		//----------------------------------------------------------
-		void CALLBACK KinectContext::StatusProc(const NuiStatusData* pStatusData)
+		/**
+			@brief	Callback function for this class
+		*/
+		void CALLBACK KinectContext::StatusProc(HRESULT hrStatus, const OLECHAR* instanceName, const OLECHAR* uniqueDeviceName)
 		{
 			int size;
 			// create instance automatically (not init/ open stream yet)
-			if(SUCCEEDED(pStatusData->hrStatus)){
+			if(SUCCEEDED(hrStatus)){
 				bool found = false;
 				size = (int)kinects_.size();
 				// if theres already a Kinect class corresponding to this kinect device.
 				for(int i = 0; i < size; i++){
-					if(kinects_[i]->instanceName_ != NULL && 0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
-						kinects_[i]->Connect(kinects_[i]->instanceName_);
-						std::wcout << "KINECT DETECTED, Device Name:: " << pStatusData->instanceName << "\n" << std::endl;
+					if(kinects_[i]->uniqueId_ != NULL && 0 == wcscmp(kinects_[i]->uniqueId_, instanceName)){
+						kinects_[i]->Connect(kinects_[i]->uniqueId_);
+						std::wcout << "KINECT IS PLUGGED, Device Name:: " << instanceName << "\n" << std::endl;
 						found = true;
 						break;
 					}
@@ -60,7 +71,7 @@ namespace kinect {
 							if(!kinects_[i]->IsConnected()){
 								kinects_[i]->index_ = index;
 								kinects_[i]->Connect(index);
-								std::wcout << "KINECT DETECTED, Device Name:: " << pStatusData->instanceName << "\n" << std::endl;
+								std::wcout << "KINECT IS PLUGGED, Device Name:: " << instanceName << "\n" << std::endl;
 								found = true;
 								break;
 							}
@@ -71,19 +82,19 @@ namespace kinect {
 
 			size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
-				if(kinects_[i]->instanceName_ != NULL && 0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
-					kinects_[i]->StatusProc(pStatusData);
+				if(kinects_[i]->uniqueId_ != NULL && 0 == wcscmp(kinects_[i]->uniqueId_, instanceName)){
+					kinects_[i]->StatusProc(hrStatus, instanceName, uniqueDeviceName);
 					break;
 				}
 			}
 
 			// shutdown automatically
-			if(FAILED(pStatusData->hrStatus)){
+			if(FAILED(hrStatus)){
 				size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
-					if(kinects_[i]->instanceName_ != NULL && 0 == wcscmp(kinects_[i]->instanceName_, pStatusData->instanceName)){
+					if(kinects_[i]->uniqueId_ != NULL && 0 == wcscmp(kinects_[i]->uniqueId_, instanceName)){
 						kinects_[i]->Disconnect();
-						std::wcout<< "\n" << "KINECT LOST, Device Name::  " << pStatusData->instanceName << "\n" << std::endl;
+						std::wcout<< "\n" << "KINECT IS UNPLUGGED, Device Name::  " << instanceName << "\n" << std::endl;
 						break;
 					}
 				}
@@ -91,6 +102,9 @@ namespace kinect {
 		}
 		
 		//----------------------------------------------------------
+		/**
+			@brief	Get context (singleton)
+		*/
 		/*static*/ KinectContext& KinectContext::GetContext()
 		{
 			static KinectContext context;
@@ -98,55 +112,70 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
-		INuiInstance* KinectContext::Create(int index)
+		/**
+			@brief	Create kinect sensor
+		*/
+		INuiSensor* KinectContext::Create(int index)
 		{
-			INuiInstance* instance = NULL;
-			HRESULT ret = ::MSR_NuiCreateInstanceByIndex(index, &instance);
+			INuiSensor* sensor = NULL;
+			HRESULT ret = ::NuiCreateSensorByIndex(index, &sensor);
 			if (SUCCEEDED(ret)) {
 				lock_.lock();
 				int size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
-					if(kinects_[i]->index_ == instance->InstanceIndex()){
+					if(kinects_[i]->index_ == sensor->NuiInstanceIndex()){
+						std::wcout << "Kinect[" << kinects_[i]->index_ << "] is connected, Device Name:: " << sensor->NuiDeviceConnectionId() << "\n" << std::endl;
 						lock_.unlock();
-						return instance;
+						return sensor;
 					}
 				}
 				lock_.unlock();
 			}
-			return instance;
+			return NULL;
 		}
 
 		//----------------------------------------------------------
-		INuiInstance* KinectContext::Create(const OLECHAR* strInstanceName)
+		/**
+			@brief	Create kinect sensor
+		*/
+		INuiSensor* KinectContext::Create(const OLECHAR* strInstanceId)
 		{
-			INuiInstance* instance = NULL;
-			HRESULT ret = ::MSR_NuiCreateInstanceByName(strInstanceName, &instance);
+			INuiSensor* sensor = NULL;
+			HRESULT ret = ::NuiCreateSensorById(strInstanceId, &sensor);
 			if (SUCCEEDED(ret)) {
 				lock_.lock();
 				int size = (int)kinects_.size();
 				for(int i = 0; i < size; i++){
-					if(0 == wcscmp(kinects_[i]->instanceName_, instance->NuiInstanceName())){
+					if(0 == wcscmp(kinects_[i]->uniqueId_, sensor->NuiDeviceConnectionId())){
+						std::wcout << "Kinect[" << kinects_[i]->index_ << "] is connected, Device Name:: " << sensor->NuiDeviceConnectionId() << "\n" << std::endl;
 						lock_.unlock();
-						return instance;
+						return sensor;
 					}
 				}
 				lock_.unlock();
 			}
-			return instance;
+			return NULL;
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Shutdown a kinect device
+			@param	kinect	kinect object
+		*/
 		void KinectContext::Shutdown(Kinect& kinect)
 		{
 			if(IsConnected(kinect.index_)){
 				lock_.lock();
-				std::wcout << "Kinect[" << kinect.index_ << "] Shutdown, Device Name:: " << kinect.instanceName_ << "\n" << std::endl;
-				kinect.instance_->NuiShutdown();
+				std::wcout << "Shutdown Kinect[" << kinect.index_ << "], Device Name:: " << kinect.uniqueId_ << "\n" << std::endl;
+				kinect.sensor_->NuiShutdown();
 				lock_.unlock();
 			}
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Shutdown all currently connected kinect devices
+		*/
 		void KinectContext::ShutdownAll()
 		{
 			lock_.lock();
@@ -158,6 +187,10 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Add a kinect object
+			@param	kinect	kinect object	
+		*/
 		void KinectContext::Add(Kinect& kinect)
 		{
 			lock_.lock();
@@ -166,6 +199,10 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Remove a kinect object
+			@param	kinect	kinect object
+		*/
 		void KinectContext::Remove(Kinect& kinect)
 		{
 			lock_.lock();
@@ -184,6 +221,9 @@ namespace kinect {
 
 
 		//----------------------------------------------------------
+		/**
+			@brief	Remove all currently added kinect objects
+		*/
 		void KinectContext::RemoveAll()
 		{
 			lock_.lock();
@@ -192,10 +232,14 @@ namespace kinect {
 		}
 		
 		//----------------------------------------------------------
+		/**
+			@brief	Get the number of active Kinect sensor
+			@return	number
+		*/
 		int KinectContext::GetActiveCount()
 		{
 			int count = 0;
-			HRESULT ret = ::MSR_NUIGetDeviceCount( &count );
+			HRESULT ret = ::NuiGetSensorCount( &count );
 			if (FAILED(ret)) {
 				return 0;
 			}
@@ -204,12 +248,20 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Get the number of available (active but not connected) Kinect sensor
+			@return	number
+		*/
 		int KinectContext::GetAvailableCount()
 		{
 			return (GetActiveCount() - GetConnectedCount());
 		}
 		
 		//----------------------------------------------------------
+		/**
+			@brief	Get the number of connected Kinect sensor
+			@return	number
+		*/
 		int KinectContext::GetConnectedCount()
 		{
 			int count = 0;
@@ -223,23 +275,32 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
-		int KinectContext::GetInstanceIndex(Kinect& kinect)
+		/**
+			@brief	Get the index of a Kinect instance
+			@param	kinect	kinect object	
+			@return	Instance index starts from 0
+		*/
+		int KinectContext::GetSensorIndex(Kinect& kinect)
 		{
 			int size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
 				if(&kinect == kinects_[i]){
-					return kinects_[i]->GetInstanceIndex();
+					return kinects_[i]->GetSensorIndex();
 				}
 			}
 			return -1;
 		}
 
 		//----------------------------------------------------------
-		Kinect* KinectContext::getKinect( NuiInstance instance )
+		/**
+			@brief	Get the Kinect object from a kinect instance pointer
+			@return	NULL if not found
+		*/
+		Kinect* KinectContext::getKinect( INuiSensor* sensor )
 		{
 			int size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
-				if(instance == kinects_[i]->instance_){
+				if(sensor == kinects_[i]->sensor_){
 					return kinects_[i];
 				}
 			}
@@ -247,11 +308,15 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Is the index already connected?
+			@return	true when connected
+		*/
 		bool KinectContext::IsConnected(int index)
 		{
 			int size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
-				if(index == kinects_[i]->GetInstanceIndex()){
+				if(index == kinects_[i]->GetSensorIndex()){
 					return kinects_[i]->IsConnected();
 				}
 			}
@@ -259,6 +324,10 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
+		/**
+			@brief	Get the index of next available Kinect device
+			@return	-1 when no available
+		*/
 		int KinectContext::GetNextAvailableIndex()
 		{
 			int size = GetActiveCount();

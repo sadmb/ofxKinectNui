@@ -1,24 +1,15 @@
-/******************************************************************/
-/**
- * @file	ofxKinectNui.cpp
- * @brief	addon of openFrameworks for Kinect Official Sensor
- * @note
- * @todo
- * @bug	
- * @reference	ofxKinectNuiPlayer.cpp created by arturo: 14/12/2010
- *
- * @author	sadmb
- * @date	Oct. 18, 2011
- */
-/******************************************************************/
 #include "ofxKinectNuiPlayer.h"
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Constructor
+*/
 ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	f = NULL;
 	filename = "";
 	skeletons = NULL;
 	skeletonPoints = NULL;
+	soundBuffer.clear();
 	fps = 30;
 
 	bPlay = false;
@@ -27,11 +18,15 @@ ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	bDepth = false;
 	bLabel = false;
 	bSkeleton = false;
+	bAudio = false;
 	bUsesTexture = false;
 	ofxBase3DVideo::initLookups();
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Destructor
+*/
 ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 	close();
 
@@ -70,23 +65,27 @@ ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 	if(skeletons != NULL){
 		delete[] skeletons;
 		skeletons = NULL;
-
 	}
+	if(!soundBuffer.empty()){
+		soundBuffer.clear();
+	}
+
 	bPlay = false;
 	bLoop = false;
 	bVideo = false;
 	bDepth = false;
 	bLabel = false;
 	bSkeleton = false;
+	bAudio = false;
 	bUsesTexture = false;
 }
 
 //---------------------------------------------------------------------------
-void ofxKinectNuiPlayer::setUsesTexture(bool bUse){
-	bUsesTexture = bUse;
-}
-
-//---------------------------------------------------------------------------
+/**
+	@brief	Setup the player to read
+	@param	file		filepath
+	@param	useTexture	set false if you want to get pixels directly
+*/
 void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/){
 	bUsesTexture = useTexture;
 	f = fopen(ofToDataPath(file).c_str(), "rb");
@@ -95,10 +94,11 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 	unsigned char dst = 0;
 	fread(&dst, sizeof(char), 1, f);
 
-	bVideo = (bool)((dst >> 3) & 0x7);
-	bDepth = (bool)((dst >> 2) & 0x7);
-	bLabel = (bool)((dst >> 1) & 0x7);
-	bSkeleton = (bool)(dst & 0x7);
+	bVideo = (bool)((dst >> 4) & 0x7);
+	bDepth = (bool)((dst >> 3) & 0x7);
+	bLabel = (bool)((dst >> 2) & 0x7);
+	bSkeleton = (bool)((dst >> 1) & 0x7);
+	bAudio = (bool)((dst >> 0) & 0x7);
 	
 
 	NUI_IMAGE_RESOLUTION videoResolution;
@@ -112,9 +112,9 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 	ofxBase3DVideo::initLookups(nearClippingDistance, farClippingDistance);
 
 	switch(videoResolution){
-	case NUI_IMAGE_RESOLUTION_1280x1024:
+	case NUI_IMAGE_RESOLUTION_1280x960:
 		width = 1280;
-		height = 1024;
+		height = 960;
 		break;
 	case NUI_IMAGE_RESOLUTION_640x480:
 		width = 640;
@@ -140,9 +140,9 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 		depthWidth = 80;
 		depthHeight = 60;
 		break;
-	case NUI_IMAGE_RESOLUTION_1280x1024:
+	case NUI_IMAGE_RESOLUTION_1280x960:
 	default:
-		string error = "Invalid depth resolution: select 320x240, 80x60 or you must disable grabLabel when you select 640x480.";
+		string error = "Invalid depth resolution: select 640x480, 320x240 or 80x60.";
 		ofLog(OF_LOG_ERROR, "ofxKinectNuiPlayer: " + error);
 		return;
 	}
@@ -205,11 +205,15 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 			}
 		}
 	}
+
 	lastFrameTime = ofGetElapsedTimeMillis();
 
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Stop and close
+*/
 void ofxKinectNuiPlayer::close(){
 	if(!f){
 		return;
@@ -223,12 +227,18 @@ void ofxKinectNuiPlayer::close(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Play
+*/
 void ofxKinectNuiPlayer::play(){
 	bPlay = true;
 	lastFrameTime = ofGetElapsedTimeMillis();
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Stop
+*/
 void ofxKinectNuiPlayer::stop(){
 	bPlay = false;
 	f = fopen(ofToDataPath(filename).c_str(), "rb");
@@ -243,11 +253,17 @@ void ofxKinectNuiPlayer::stop(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Pause
+*/
 void ofxKinectNuiPlayer::pause(){
 	bPlay = false;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Update kinect player
+*/
 void ofxKinectNuiPlayer::update(){
 	if(!f || !bPlay){
 		return;
@@ -305,6 +321,12 @@ void ofxKinectNuiPlayer::update(){
 			labelTexture.loadData(labelPixels);
 		}
 	}
+
+	if(bAudio){
+		fread(&audioBeamAngle, sizeof(float), 1, f);
+		fread(&audioAngle, sizeof(float), 1, f);
+		fread(&audioAngleConfidence, sizeof(float), 1, f);
+	}
 	bIsFrameNew = true;
 
 	// loop?
@@ -329,6 +351,13 @@ bool ofxKinectNuiPlayer::isFrameNew(){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video player
+	@param	x	X position of video player
+	@param	x	X position of video player
+	@param	w	Width of video player
+	@param	h	Height of video player
+*/
 void ofxKinectNuiPlayer::draw(float x, float y, float w, float h){
 	if(bUsesTexture && bVideo) {
 		videoTexture.draw(x, y, w, h);
@@ -338,26 +367,57 @@ void ofxKinectNuiPlayer::draw(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video player
+	@param	x	X position of video player
+	@param	x	X position of video player
+	@param	w	Width of video player
+	@param	h	Height of video player
+*/
 void ofxKinectNuiPlayer::draw(float x, float y){
 	draw(x, y, width, height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video player
+	@param	x	X position of video player
+	@param	x	X position of video player
+	@param	w	Width of video player
+	@param	h	Height of video player
+*/
 void ofxKinectNuiPlayer::draw(const ofPoint & point){
 	draw(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video player
+	@param	point	position of video player
+	@param	w	Width of video player
+	@param	h	Height of video player
+*/
 void ofxKinectNuiPlayer::draw(const ofPoint & point, float w, float h){
 	draw(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw video player
+	@param	rect	Rectangle of video player area
+*/
 void ofxKinectNuiPlayer::draw(const ofRectangle & rect){
 	draw(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth player
+	@param	x	X position of depth player
+	@param	x	X position of depth player
+	@param	w	Width of depth player
+	@param	h	Height of depth player
+*/
 void ofxKinectNuiPlayer::drawDepth(float x, float y, float w, float h){
 	if(bUsesTexture && bDepth) {
 		depthTexture.draw(x, y, w, h);
@@ -367,26 +427,52 @@ void ofxKinectNuiPlayer::drawDepth(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth player
+	@param	x	X position of depth player
+	@param	x	X position of depth player
+*/
 void ofxKinectNuiPlayer::drawDepth(float x, float y){
 	depthTexture.draw(x, y, depthWidth, depthHeight);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth player
+	@param	point	position of depth player
+*/
 void ofxKinectNuiPlayer::drawDepth(const ofPoint & point){
 	drawDepth(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth player
+	@param	point	position of depth player
+	@param	w	Width of depth player
+	@param	h	Height of depth player
+*/
 void ofxKinectNuiPlayer::drawDepth(const ofPoint & point, float w, float h){
 	drawDepth(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw depth player
+	@param	rect	Rectangle of depth player area
+*/
 void ofxKinectNuiPlayer::drawDepth(const ofRectangle & rect){
 	drawDepth(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton player
+	@param	x	X position of skeleton player
+	@param	x	X position of skeleton player
+	@param	w	Width of skeleton player
+	@param	h	Height of skeleton player
+*/
 void ofxKinectNuiPlayer::drawSkeleton(float x, float y, float w, float h){
 	if(bSkeleton){
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
@@ -445,27 +531,57 @@ void ofxKinectNuiPlayer::drawSkeleton(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton player
+	@param	x	X position of skeleton player
+	@param	x	X position of skeleton player
+*/
 void ofxKinectNuiPlayer::drawSkeleton(float x, float y){
 	drawSkeleton(x, y, width, height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton player
+	@param	point	position of skeleton player
+*/
 void ofxKinectNuiPlayer::drawSkeleton(const ofPoint & point){
 	drawSkeleton(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton player
+	@param	x	X position of skeleton player
+	@param	x	X position of skeleton player
+	@param	w	Width of skeleton player
+	@param	h	Height of skeleton player
+*/
 void ofxKinectNuiPlayer::drawSkeleton(const ofPoint & point, float w, float h){
 	drawSkeleton(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw skeleton player
+	@param	x	X position of skeleton player
+	@param	x	X position of skeleton player
+	@param	w	Width of skeleton player
+	@param	h	Height of skeleton player
+*/
 void ofxKinectNuiPlayer::drawSkeleton(const ofRectangle & rect){
 	drawSkeleton(rect.x, rect.y, rect.width, rect.height);
 }
 
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label player
+	@param	x	X position of label player
+	@param	x	X position of label player
+	@param	w	Width of label player
+	@param	h	Height of label player
+*/
 void ofxKinectNuiPlayer::drawLabel(float x, float y, float w, float h){
 	if(bUsesTexture && bLabel) {
 		labelTexture.draw(x, y, w, h);
@@ -475,107 +591,277 @@ void ofxKinectNuiPlayer::drawLabel(float x, float y, float w, float h){
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label player
+	@param	x	X position of label player
+	@param	x	X position of label player
+*/
 void ofxKinectNuiPlayer::drawLabel(float x, float y){
 	drawLabel(x, y, width, height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label player
+	@param	point position of label player
+*/
 void ofxKinectNuiPlayer::drawLabel(const ofPoint & point){
 	drawLabel(point.x, point.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label player
+	@param	point position of label player
+	@param	w	Width of label player
+	@param	h	Height of label player
+*/
 void ofxKinectNuiPlayer::drawLabel(const ofPoint & point, float w, float h){
 	drawLabel(point.x, point.y, w, h);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw label player
+	@param	rect	Rectangle of label player area
+*/
 void ofxKinectNuiPlayer::drawLabel(const ofRectangle & rect){
 	drawLabel(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Draw audio direction view
+	@param	x	X position of drawing audio direction view
+	@param	x	X position of drawing audio direction view
+*/
+void ofxKinectNuiPlayer::drawAudioDirection(float x, float y) {
+	// TODO
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Draw audio direction view
+	@param	point	position of drawing audio direction view
+*/
+void ofxKinectNuiPlayer::drawAudioDirection(const ofPoint & point) {
+	drawAudioDirection(point.x, point.y);
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get pixels of video
+	@return	Video pixels
+*/
 ofPixels& ofxKinectNuiPlayer::getVideoPixels(){
 	return videoPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get pixels of depth
+	@return	Depth pixels
+*/
 ofPixels& ofxKinectNuiPlayer::getDepthPixels(){
 	return depthPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get pixels of label
+	@return	Label pixels
+*/
 ofPixels& ofxKinectNuiPlayer::getLabelPixels(){
 	return labelPixels;
 }
 
 //---------------------------------------------------------------------------
-ofShortPixels& ofxKinectNuiPlayer::getDistancePixels(){
-	return distancePixels;
-}
-
-//---------------------------------------------------------------------------
+/**
+	@brief	Get pixels of calibrated video
+	@return	Calibrated video pixels
+*/
 ofPixels& ofxKinectNuiPlayer::getCalibratedVideoPixels(){
 	return calibratedVideoPixels;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get pixels of distance
+	@return	Distance pixels
+*/
+ofShortPixels& ofxKinectNuiPlayer::getDistancePixels(){
+	return distancePixels;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get sound buffer
+	@return	Sound buffer
+*/
+std::vector<BYTE> ofxKinectNuiPlayer::getSoundBuffer(){
+	return soundBuffer;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get the reference of video texture
+	@return	Video texture
+*/
 ofTexture& ofxKinectNuiPlayer::getVideoTextureReference(){
 	return videoTexture;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get the reference of depth texture
+	@return	Depth texture
+*/
 ofTexture & ofxKinectNuiPlayer::getDepthTextureReference(){
 	return depthTexture;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get the reference of label texture
+	@return	Label texture
+*/
 ofTexture & ofxKinectNuiPlayer::getLabelTextureReference(){
 	return labelTexture;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get calibrated video texture
+	@return	Calibrated video texture
+*/
+ofTexture & ofxKinectNuiPlayer::getCalibratedVideoTextureReference(){
+	return labelTexture;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Set if use texture
+	@param	bUse	true when use texture
+*/
+void ofxKinectNuiPlayer::setUsesTexture(bool bUse){
+	bUsesTexture = bUse;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get the width of video
+	@return	Width
+*/
 float ofxKinectNuiPlayer::getWidth(){
 	return (float)width;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get the height of video
+	@return	Height
+*/
 float ofxKinectNuiPlayer::getHeight(){
 	return (float)height;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get the width of depth
+	@return	Width
+*/
 float ofxKinectNuiPlayer::getDepthWidth(){
 	return (float)depthWidth;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get the height of depth
+	@return	Height
+*/
 float ofxKinectNuiPlayer::getDepthHeight(){
 	return (float)depthHeight;
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get distance at the point
+	@param	x
+	@param	y
+	@return	distance at (x, y)
+*/
 float ofxKinectNuiPlayer::getDistanceAt(int x, int y) {
 	return distancePixels[y * depthWidth + x];
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get distance at the point
+	@param	p
+	@return	distance at the point
+*/
 float ofxKinectNuiPlayer::getDistanceAt(ofPoint p) {
 	return getDistanceAt((int)p.x, (int)p.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get world coordinate for the point
+	@param	x
+	@param	y
+	@return	World vector
+*/
 ofVec3f ofxKinectNuiPlayer::getWorldCoordinateFor(int depthX, int depthY) {
 	const double depthZ = distancePixels[depthWidth * depthX + depthY]/1000.0;
 	return ofxBase3DVideo::getWorldCoordinateFor(depthX, depthY, depthZ);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get world coordinate for the point
+	@param	p
+	@return	World vector
+*/
 ofVec3f ofxKinectNuiPlayer::getWorldCoordinateFor(ofPoint p) {
 	return getWorldCoordinateFor((int)p.x, (int)p.y);
 }
 
 //---------------------------------------------------------------------------
+/**
+	@brief	Get audio beam angle
+	@return	Audio beam angle
+*/
+float ofxKinectNuiPlayer::getAudioBeamAngle() {
+	return audioBeamAngle;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get estimate audio angle
+	@return	Estimate Audio angle
+*/
+float ofxKinectNuiPlayer::getAudioAngle() {
+	return audioAngle;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Get the confidence of estimate audio angle
+	@return	Confidence of estimate audio angle
+*/
+float ofxKinectNuiPlayer::getAudioAngleConfidence() {
+	return audioAngleConfidence;
+}
+
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Calculates the scaled point of skeleton joint
+	@param	skeletonPoint
+	@param	width
+	@param	width
+	@return	Scaled skeleton point
+*/
 ofPoint ofxKinectNuiPlayer::calcScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
 	float px = min((skeletonPoint.x * width) + 0.5f, (float)width);
 	float py = min((skeletonPoint.y * height) + 0.5f, (float)height);

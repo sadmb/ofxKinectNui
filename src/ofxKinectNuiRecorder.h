@@ -36,7 +36,7 @@ public:
 	ofxKinectNuiRecorder();
 	virtual ~ofxKinectNuiRecorder();
 
-	void setup(ofxKinectNui& kinect, const string & filename);
+	void setup(ofxKinectNui& kinect, const string& filename);
 
 	void update();
 	void close();

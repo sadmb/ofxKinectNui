@@ -65,6 +65,9 @@ class testApp : public ofBaseApp {
 
 		bool bRecord;
 		bool bPlayback;
+		bool bDrawVideo;
+		bool bDrawDepthLabel;
+		bool bDrawSkeleton;
 		bool bDrawCalibratedTexture;
 		bool bPlugged;
 		bool bUnplugged;

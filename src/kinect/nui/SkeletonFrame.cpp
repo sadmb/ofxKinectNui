@@ -1,38 +1,33 @@
-﻿/******************************************************************/
-/**
- * @file	SkeletonFrame.cpp
- * @brief	Skeleton frame and skeleton data for kinect video/ depth camera
- * @note	
- * @todo
- * @bug	
- * @see		https://github.com/sadmb/kinect_sdk_sandbox/tree/master/kinect_cpp_wrapper
- *
- * @author	kaorun55
- * @author	sadmb
- * @date	Oct. 26, 2011 modified
- */
-/******************************************************************/
-#include "kinect/nui/SkeletonFrame.h"
+﻿#include "kinect/nui/SkeletonFrame.h"
 #include "kinect/nui/SkeletonEngine.h"
 
 namespace kinect {
 	namespace nui {
 		//----------------------------------------------------------
-		SkeletonFrame::SkeletonFrame( std::shared_ptr< INuiInstance >& instance, DWORD dwMillisecondsToWait /*= 0*/ )
-			: instance_( instance )
+		/**
+			@biref	Constructor
+		*/
+		SkeletonFrame::SkeletonFrame( INuiSensor* sensor, DWORD dwMillisecondsToWait /*= 0*/ )
+			: sensor_( sensor )
 		{
 			GetNextFrame( dwMillisecondsToWait );
 		}
 
 		//----------------------------------------------------------
+		/**
+			@biref	Destructor
+		*/
 		SkeletonFrame::~SkeletonFrame()
 		{
 		}
 
 		//----------------------------------------------------------
+		/**
+			@biref	Transform smoothing data
+		*/
 		void SkeletonFrame::TransformSmooth( const NUI_TRANSFORM_SMOOTH_PARAMETERS *pSmoothingParams /*= 0*/ )
 		{
-			HRESULT ret = instance_->NuiTransformSmooth( &skeletonFrame_, pSmoothingParams );
+			HRESULT ret = sensor_->NuiTransformSmooth( &skeletonFrame_, pSmoothingParams );
 			if (FAILED(ret)) {
 				// TODO fail announce
 				return;
@@ -40,10 +35,31 @@ namespace kinect {
 		}
 
 		//----------------------------------------------------------
+		/**
+			@biref	If skeleton is found
+			@return	true when a skeleton founded
+		*/
 		bool SkeletonFrame::IsFoundSkeleton() const
 		{
 			for( int i = 0; i < NUI_SKELETON_COUNT; ++i ) {
-				if( skeletonFrame_.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED ) {
+				if( skeletonFrame_.SkeletonData[i].eTrackingState == NUI_SKELETON_TRACKED) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		//----------------------------------------------------------
+		/**
+			@biref	If position is found
+			@return	true when a position founded
+		 */
+		bool SkeletonFrame::IsFoundPosition() const
+		{
+			for( int i = 0; i < NUI_SKELETON_COUNT; ++i ) {
+				if( skeletonFrame_.SkeletonData[i].eTrackingState == NUI_SKELETON_POSITION_TRACKED ||
+					skeletonFrame_.SkeletonData[i].eTrackingState == NUI_SKELETON_POSITION_ONLY) {
 					return true;
 				}
 			}
@@ -52,13 +68,16 @@ namespace kinect {
 		}
  
 		//----------------------------------------------------------
+		/**
+			@biref	Get the next frame
+		*/
 		void SkeletonFrame::GetNextFrame( DWORD dwMillisecondsToWait /*= 0*/ )
 		{
-			HRESULT ret = instance_->NuiSkeletonGetNextFrame( dwMillisecondsToWait, &skeletonFrame_ );
+			HRESULT ret = sensor_->NuiSkeletonGetNextFrame( dwMillisecondsToWait, &skeletonFrame_ );
 			if (FAILED(ret)) {
 				// TODO fail announce
 				return;
 			}
 		}
-	}
-}
+	} // namespace nui
+} // namespace kinect

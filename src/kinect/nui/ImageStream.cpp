@@ -1,73 +1,93 @@
-﻿/******************************************************************/
-/**
- * @file	ImageStream.cpp
- * @brief	Image stream for kinect video/ depth camera
- * @note	
- * @todo
- * @bug	
- * @see		https://github.com/sadmb/kinect_sdk_sandbox/tree/master/kinect_cpp_wrapper
- *
- * @author	kaorun55
- * @author	sadmb
- * @date	Oct. 26, 2011 modified
- */
-/******************************************************************/
-#include "kinect/nui/ImageStream.h"
+﻿#include "kinect/nui/ImageStream.h"
 
 namespace kinect {
 	namespace nui {
 		//----------------------------------------------------------
+		/**
+			@brief Constructor
+		*/
         ImageStream::ImageStream()
-            : instance_( NULL )
+            : sensor_( NULL )
             , hStream_( 0 )
             , event_( 0 )
+			, nearMode_( false )
         {
         }
 
 		//----------------------------------------------------------
+		/**
+			@brief Destructor
+		*/
         ImageStream::~ImageStream()
         {
         }
 		
 		//----------------------------------------------------------
-		void ImageStream::CopyInstance( std::shared_ptr< INuiInstance >& instance )
+		/**
+			@brief Copy instance
+			@param	instance	pointer of NuiInstance
+		*/
+		void ImageStream::CopySensor( INuiSensor* sensor )
 		{
-			instance_ = instance;
+			if(sensor_ != NULL){
+				sensor_->Release();
+				sensor_ = NULL;
+			}
+			sensor_ = sensor;
 		}
 
 		//----------------------------------------------------------
-		void ImageStream::Open( NUI_IMAGE_TYPE eImageType, NUI_IMAGE_RESOLUTION eResolution, DWORD dwImageFrameFlags_NotUsed /*= 0*/,
-								DWORD dwFrameLimit /*= 2*/ )
+		/**
+			@brief Open stream
+		*/
+		void ImageStream::Open( NUI_IMAGE_TYPE eImageType, NUI_IMAGE_RESOLUTION eResolution,
+								bool nearMode /*= false */, DWORD dwImageFrameFlags_NotUsed /*= 0*/, DWORD dwFrameLimit /*= 2*/ )
 		{
-			HRESULT ret = instance_->NuiImageStreamOpen( eImageType, eResolution, dwImageFrameFlags_NotUsed,
+			HRESULT ret = sensor_->NuiImageStreamOpen( eImageType, eResolution, dwImageFrameFlags_NotUsed,
 														dwFrameLimit, event_.get(), &hStream_ );
 			resolution_ = eResolution;
 			if (FAILED(ret)) {
 				return;
+			}
+			if((eImageType != NUI_IMAGE_TYPE_DEPTH) && (eImageType != NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX)){
+				nearMode = false;
+			}
+			nearMode_ = nearMode;
+			if(nearMode_){
+				ret = sensor_->NuiImageStreamSetImageFrameFlags(hStream_, NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE);
+				if (FAILED(ret)) {
+					return;
+				}
 			}
 
             ::NuiImageResolutionToSize( eResolution, (DWORD&)width_, (DWORD&)height_ );
 		}
 
 		//----------------------------------------------------------
-		const NUI_IMAGE_FRAME* ImageStream::GetNextFrame( DWORD dwMillisecondsToWait /*= 0*/ )
+		/**
+			@brief Get the next frame
+		*/
+		NUI_IMAGE_FRAME ImageStream::GetNextFrame( DWORD dwMillisecondsToWait /*= 0*/ )
 		{
-			const NUI_IMAGE_FRAME* pImageFrame = 0;
-			HRESULT ret = instance_->NuiImageStreamGetNextFrame( hStream_, dwMillisecondsToWait, &pImageFrame );
+			NUI_IMAGE_FRAME imageFrame;
+			HRESULT ret = sensor_->NuiImageStreamGetNextFrame( hStream_, dwMillisecondsToWait, &imageFrame );
 			if (FAILED(ret)) {
-				return NULL;
+				imageFrame.pFrameTexture = NULL;
 			}
 
-			return pImageFrame;
+			return imageFrame;
 		}
 
 		//----------------------------------------------------------
-        void ImageStream::ReleaseFrame( CONST NUI_IMAGE_FRAME *pImageFrame )
+		/**
+			@brief Release the frame
+		*/
+        void ImageStream::ReleaseFrame(NUI_IMAGE_FRAME imageFrame )
         {
-            HRESULT ret = instance_->NuiImageStreamReleaseFrame( hStream_, pImageFrame );
+            HRESULT ret = sensor_->NuiImageStreamReleaseFrame( hStream_, &imageFrame );
 			if (FAILED(ret)) {
 				return;
 			}
         }
-    }
-}
+	} // namespace nui
+} // namespace kinect

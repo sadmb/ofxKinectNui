@@ -16,14 +16,15 @@
 void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
-	kinect.init(true, true, true, true, true, true, true); // enable all captures
+	kinect.init(true, true, true, true, true, true, true, true); // enable all captures
 	kinect.open();
+//	kinect.open(true); // when you want to use near mode
 
 	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
 	
 #ifdef USE_TWO_KINECTS
 	// watch out that only the first kinect can grab label and skeleton.
-	kinect2.init(true, true, false, false, false, false, true);
+	kinect2.init(true, true, false, false, false, false, false, true);
 	kinect2.open();
 #endif
 	ofSetVerticalSync(true);
@@ -35,7 +36,10 @@ void testApp::setup() {
 	bPlugged = kinect.isConnected();
 	nearClipping = kinect.getNearClippingDistance();
 	farClipping = kinect.getFarClippingDistance();
-
+	
+	bDrawVideo = false;
+	bDrawDepthLabel = false;
+	bDrawSkeleton = false;
 	bDrawCalibratedTexture = false;
 
 	ofSetFrameRate(60);
@@ -57,9 +61,22 @@ void testApp::update() {
 //--------------------------------------------------------------
 void testApp::draw() {
 	ofBackground(100, 100, 100);
-	if(bDrawCalibratedTexture){
+	// Draw video only
+	if(bDrawVideo){
+		kinect.draw(0, 0, 1024, 768);	// draw video images from kinect camera
+	// Draw depth + users label only
+	}else if(bDrawDepthLabel){
+		ofEnableAlphaBlending();
+		kinect.drawDepth(0, 0, 1024, 768);	// draw depth images from kinect depth sensor
+		kinect.drawLabel(0, 0, 1024, 768);		// draw players' label images on video images
+		ofDisableAlphaBlending();
+	// Draw skeleton only
+	}else if(bDrawSkeleton){
+		kinect.drawSkeleton(0, 0, 1024, 768);	// draw skeleton images on video images
+	// Draw calibrated image only
+	}else if(bDrawCalibratedTexture){
 		ofPushMatrix();
-		drawCalibratedTexture();
+		drawCalibratedTexture();	// draw calibrated images coodinates to depth images
 		ofPopMatrix();
 	}else{
 		if(!bPlayback){
@@ -111,36 +128,42 @@ void testApp::draw() {
 	// draw instructions
 	ofSetColor(255, 255, 255);
 	stringstream reportStream;
-	reportStream << " (press: < >), fps: " << ofGetFrameRate() << endl
+	reportStream << "fps: " << ofGetFrameRate() << "  Kinect Nearmode: " << kinect.isNearmode() << endl
 				 << "press 'c' to close the stream and 'o' to open it again, stream is: " << kinect.isOpened() << endl
 				 << "press UP and DOWN to change the tilt angle: " << angle << " degrees" << endl
 				 << "press LEFT and RIGHT to change the far clipping distance: " << farClipping << " mm" << endl
 				 << "press '+' and '-' to change the near clipping distance: " << nearClipping << " mm" << endl
 				 << "press 'r' to record and 'p' to playback, record is: " << bRecord << ", playback is: " << bPlayback << endl
-				 << "press 'q' to show calibratedRGB sample: " << bDrawCalibratedTexture;
-	ofDrawBitmapString(reportStream.str(), 20, 652);
+				 << "press 'v' to show video only: " << bDrawVideo << ",      press 'd' to show depth + users label only: " << bDrawDepthLabel << endl
+				 << "press 's' to show skeleton only: " << bDrawSkeleton << ",   press 'q' to show point cloud sample: " << bDrawCalibratedTexture;
+	ofDrawBitmapString(reportStream.str(), 20, 648);
 	
 }
 
 //--------------------------------------------------------------
 void testApp::drawCalibratedTexture(){
-	int offsetX = 0;
-	int offsetY = 0;
-	ofRotateY(mRotationY);
-	ofRotateX(mRotationX);
+	int offsetX = -400;
+	int offsetY = -300;
+	glTranslatef(512, 386, 0);
 	calibratedTexture.loadData(kinect.getCalibratedVideoPixels());
-	calibratedTexture.draw(offsetX, offsetY, 800, 600);
-	for(int y = 0; y < 240; y+=2){
-		for(int x = 0; x < 320; x+=2){
+	for(int y = 0; y < 240; y++){
+		for(int x = 0; x < 320; x++){
 			float distance = kinect.getDistanceAt(x, y);
 			if(distance > 500 && distance < 1500){
 				glPushMatrix();
-				float radius = (1600 - distance) / 100;
-				radius = radius * radius;
-				ofPoint p = ofPoint(x, y);
-				ofSetColor(kinect.getCalibratedColorAt(p));
-				glTranslatef(x * 2.5 + offsetX, y * 2.5 + offsetY, radius * 3);
-				ofCircle(0, 0, radius);
+				float radius = (1500 - distance);
+				ofSetColor(kinect.getCalibratedColorAt(x, y));
+				ofRotateY(mRotationY);
+				ofRotateX(mRotationX);
+				glTranslatef(x * 2.5 + offsetX, y * 2.5 + offsetY, radius);
+				ofBox(5);
+				glPopMatrix();
+			}else{
+				glPushMatrix();
+				ofSetColor(kinect.getCalibratedColorAt(x, y));
+				ofRotateY(mRotationY);
+				ofRotateX(mRotationX);
+				ofRect(x * 2.5 + offsetX, y * 2.5 + offsetY, 5, 5);
 				glPopMatrix();
 			}
 		}
@@ -169,19 +192,55 @@ void testApp::exit() {
 //--------------------------------------------------------------
 void testApp::keyPressed (int key) {
 	switch(key){
-	case 'q':
+	case 'v': // draw video only
+	case 'V':
+		bDrawVideo = !bDrawVideo;
+		if(bDrawVideo){
+			bDrawCalibratedTexture = false;
+			bDrawSkeleton = false;
+			bDrawDepthLabel = false;
+			glDisable(GL_DEPTH_TEST);
+		}
+		break;
+	case 'd': // draw depth + users label only
+	case 'D':
+		bDrawDepthLabel = !bDrawDepthLabel;
+		if(bDrawDepthLabel){
+			bDrawCalibratedTexture = false;
+			bDrawVideo = false;
+			bDrawSkeleton = false;
+			glDisable(GL_DEPTH_TEST);
+		}
+		break;
+	case 's': // draw skeleton only
+	case 'S':
+		bDrawSkeleton = !bDrawSkeleton;
+		if(bDrawSkeleton){
+			bDrawCalibratedTexture = false;
+			bDrawVideo = false;
+			bDrawDepthLabel = false;
+			glDisable(GL_DEPTH_TEST);
+		}
+		break;
+	case 'q': // draw point cloud example
 	case 'Q':
 		bDrawCalibratedTexture = !bDrawCalibratedTexture;
+		if(bDrawCalibratedTexture){
+			bDrawVideo = false;
+			bDrawDepthLabel = false;
+			bDrawSkeleton = false;
+			glEnable(GL_DEPTH_TEST);
+		}
 		break;
-	case 'o':
+	case 'o': // open stream
 	case 'O':
 		kinect.open();
 		break;
-	case 'c':
+	case 'c': // close stream
 	case 'C':
 		kinect.close();
 		break;
-	case 'r':
+	case 'r': // record stream
 	case 'R':
 		if(!bRecord){
 			startRecording();
@@ -189,7 +248,7 @@ void testApp::keyPressed (int key) {
 			stopRecording();
 		}
 		break;
-	case 'p':
+	case 'p': // playback recorded stream
 	case 'P':
 		if(!bPlayback){
 			startPlayback();
@@ -197,41 +256,41 @@ void testApp::keyPressed (int key) {
 			stopPlayback();
 		}
 		break;
-	case OF_KEY_UP:
+	case OF_KEY_UP: // up the kinect angle
 		angle++;
 		if(angle > 27){
 			angle = 27;
 		}
 		kinect.setAngle(angle);
 		break;
-	case OF_KEY_DOWN:
+	case OF_KEY_DOWN: // down the kinect angle
 		angle--;
 		if(angle < -27){
 			angle = -27;
 		}
 		kinect.setAngle(angle);
 		break;
-	case OF_KEY_LEFT:
+	case OF_KEY_LEFT: // increase the far clipping distance
 		if(farClipping > nearClipping + 10){
 			farClipping -= 10;
 			kinectSource->setFarClippingDistance(farClipping);
 		}
 		break;
-	case OF_KEY_RIGHT:
+	case OF_KEY_RIGHT: // decrease the far clipping distance
 		if(farClipping < 4000){
 			farClipping += 10;
 			kinectSource->setFarClippingDistance(farClipping);
 		}
 		break;
-	case '-':
-		if(nearClipping >= 10){
-			nearClipping -= 10;
+	case '+': // increase the near clipping distance
+		if(nearClipping < farClipping - 10){
+			nearClipping += 10;
 			kinectSource->setNearClippingDistance(nearClipping);
 		}
 		break;
-	case '+':
-		if(nearClipping < farClipping - 10){
-			nearClipping += 10;
+	case '-': // decrease the near clipping distance
+		if(nearClipping >= 10){
+			nearClipping -= 10;
 			kinectSource->setNearClippingDistance(nearClipping);
 		}
 		break;
@@ -240,8 +299,8 @@ void testApp::keyPressed (int key) {
 
 //--------------------------------------------------------------
 void testApp::mouseMoved(int x, int y) {
-	mRotationY = x / 20;
-	mRotationX = (y - 384) / 10;
+	mRotationY = (x - 512) / 5;
+	mRotationX = (384 - y) / 5;
 }
 
 //--------------------------------------------------------------

@@ -1,10 +1,10 @@
 <install>
     <name>ofxKinectNui</name>
 	
-	<version>0.02</version>
+	<version>0.03</version>
 	<author>sadmb</author>
 	<url>http://anno-lab.com/</url>
-	<requires>Kinect sensor, Visual Studio2010 on Windows 7 (or 8 preview), Kinect SDK beta2</requires>
+	<requires>Kinect for Windows, Visual Studio2010 on Windows 7 (or 8 preview), Kinect SDK 1.0</requires>
 	<add>	
 		<!-- 	=====================================================================	-->
 		<!--	========================== add per project using this addon =========	-->
@@ -27,6 +27,12 @@
 				<file>../../../addons/ofxKinectNui/src/kinect/nui/Kinect.cpp</file>
 				<file>../../../addons/ofxKinectNui/src/kinect/nui/KinectContext.h</file>
 				<file>../../../addons/ofxKinectNui/src/kinect/nui/KinectContext.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/KinectListener.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/AudioStream.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/AudioStream.cpp</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/StatifMediaBuffer.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/WaveOutput.h</file>
+				<file>../../../addons/ofxKinectNui/src/kinect/nui/WaveFileWriter.cpp</file>
 				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageStream.h</file>
 				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageStream.cpp</file>
 				<file>../../../addons/ofxKinectNui/src/kinect/nui/ImageFrame.h</file>
@@ -44,11 +50,20 @@
 		</src>
 		<include>
 			<path>../../../addons/ofxKinectNui/src/</path>
-			<path>$(KINECTSDK_DIR)/inc</path>					</include>
+			<path>$(KINECTSDK10_DIR)/inc</path>					</include>
 		
 		<link>
-			<lib os="Win32" compiler="visualstudio">$(KINECTSDK_DIR)/lib/x86/MSRKinectNUI.lib</lib>
-			<lib os="x64" compiler="visualstudio">$(KINECTSDK_DIR)/lib/amd64/MSRKinectNUI.lib</lib>
+			<lib os="Win32" compiler="visualstudio">$(KINECTSDK10_DIR)/lib/x86/Kinect10.lib</lib>
+			<lib os="Win32" compiler="visualstudio">$(VCInstallDir)/lib/msdmo.lib</lib>
+			<lib os="Win32" compiler="visualstudio">$(VCInstallDir)lib/dmoguids.lib</lib>
+			<lib os="Win32" compiler="visualstudio">$(VCInstallDir)lib/amstrmid.lib</lib>
+			<lib os="Win32" compiler="visualstudio">$(VCInstallDir)lib/winmm.lib</lib>
+			<lib os="x64" compiler="visualstudio">$(KINECTSDK10_DIR)/lib/amd64/Kinect10.lib</lib>
+			<lib os="x64" compiler="visualstudio">$(VCInstallDir)/lib/msdmo.lib</lib>
+			<lib os="x64" compiler="visualstudio">$(VCInstallDir)lib/dmoguids.lib</lib>
+			<lib os="x64" compiler="visualstudio">$(VCInstallDir)lib/amstrmid.lib</lib>
+			<lib os="x64" compiler="visualstudio">$(VCInstallDir)lib/winmm.lib</lib>
+
 		</link>
 	</add>
 	 
