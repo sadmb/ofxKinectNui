@@ -16,9 +16,7 @@
 void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
-	kinect.init(false, true, true, false, false, true, false);	/// only use depth capturing and separated label capturing
-//////	You can set grabsLabel false if you don't need colorImage draw
-//	kinect.init(false, true, false, false, false, true, false);
+	kinect.init(false, true, false, true, false, false, true, false);	/// only use depth capturing and separated label capturing
 	kinect.open();
 
 	ofSetVerticalSync(true);

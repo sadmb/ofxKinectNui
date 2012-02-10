@@ -17,7 +17,7 @@ void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
 	kinect.init(true, true, true, true, true, true, true, true); // enable all captures
-	kinect.open();
+	kinect.open(true);
 //	kinect.open(true); // when you want to use near mode
 
 	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
