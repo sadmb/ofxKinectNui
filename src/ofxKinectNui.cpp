@@ -25,7 +25,6 @@ ofxKinectNui::ofxKinectNui(){
 	bGrabsSkeleton = false;
 	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
-	ofxBase3DVideo::initLookups();
 	labelPixelsCv = NULL;
 	skeletonPoints = NULL;
 

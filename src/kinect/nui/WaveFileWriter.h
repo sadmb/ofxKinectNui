@@ -44,7 +44,6 @@ namespace kinect {
 			  dataSize_( 0 ),
 			  needFlush_( false )
 			{
-
 			}
 
 			virtual ~WaveFileWriter()

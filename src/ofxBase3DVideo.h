@@ -26,11 +26,12 @@ public:
 	unsigned char* getPixels(){return getVideoPixels().getPixels();} ///< of007 compatible
 
 	/**
-	 * @brief	init lookups
+	 * @brief	constructor
 	 */
-	void initLookups(){
-		initLookups(0, 4000);
+	ofxBase3DVideo(): nearClippingDistance(0), farClippingDistance(4000), bIsDepthNearValueWhite(true), bCalculatesLookups(false) {
+		calculateLookups();
 	}
+
 	void initLookups(unsigned short nearClippingDistance, unsigned short farClippingDistance){
 		setNearClippingDistance(nearClippingDistance);
 		setFarClippingDistance(farClippingDistance);
@@ -117,8 +118,8 @@ protected:
 			bCalculatesLookups = true;
 			ofLog(OF_LOG_VERBOSE, "Setting up LUT for distance and depth values.");
 			
-			for(int i = 0; i < 65535; i++){
-				if(i == 65534) {
+			for(int i = 0; i < USHRT_MAX; i++){
+				if(i == (USHRT_MAX - 1)) {
 					depthPixelsLookupNearWhite[i] = 0;
 					depthPixelsLookupFarWhite[i] = 0;
 				} else {

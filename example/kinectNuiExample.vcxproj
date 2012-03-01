@@ -104,6 +104,8 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
+      <HeapReserveSize>100000000</HeapReserveSize>
+      <HeapCommitSize>100000000</HeapCommitSize>
     </Link>
     <PostBuildEvent>
       <Message>adding DLLs and creating data folder</Message>
@@ -169,6 +171,14 @@ if not exist "$(ProjectDir)bin\data" mkdir  "$(ProjectDir)bin\data"
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <HeapReserveSize>
+      </HeapReserveSize>
+      <HeapCommitSize>
+      </HeapCommitSize>
+      <StackReserveSize>
+      </StackReserveSize>
+      <StackCommitSize>
+      </StackCommitSize>
     </Link>
     <PostBuildEvent>
       <Message>adding DLLs and creating data folder</Message>

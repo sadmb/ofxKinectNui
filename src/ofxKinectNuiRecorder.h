@@ -14,10 +14,13 @@
 #ifndef OFX_KINECT_NUI_RECORDER_H
 #define OFX_KINECT_NUI_RECORDER_H
 
+#include <queue>
+
 #include "kinect/nui/Kinect.h"
 #include "ofMain.h"
 #include "ofxKinectNui.h"
 #include "ofxBase3DVideo.h"
+#include "FreeImage.h"
 
 //////////////////////////////////////////////////////
 //				class declarations					//
@@ -44,6 +47,8 @@ public:
 	bool isActive();
 
 private:
+	ofFile videoFile;
+	ofFile depthFile;
 	FILE* f;
 	int width, height;
 	int depthWidth, depthHeight;

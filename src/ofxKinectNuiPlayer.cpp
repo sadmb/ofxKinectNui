@@ -20,7 +20,6 @@ ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	bSkeleton = false;
 	bAudio = false;
 	bUsesTexture = false;
-	ofxBase3DVideo::initLookups();
 }
 
 //---------------------------------------------------------------------------
@@ -147,8 +146,6 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 		return;
 	}
 	
-	ofxBase3DVideo::initLookups();
-
 	if(bVideo){
 		if(!videoPixels.isAllocated()){
 			videoPixels.allocate(width, height, OF_PIXELS_RGB);
