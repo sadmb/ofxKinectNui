@@ -345,6 +345,7 @@ void ofxKinectNui::update(){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
 	}
+
 	// wait and update all data
 	kinect.WaitAndUpdateAll();
 		
@@ -392,7 +393,8 @@ void ofxKinectNui::update(){
 						}
 					}
 				}else{
-					depthbit = depth(depth.Width() - x, y);
+					// update for Kinect for Windows
+					depthbit = depth(x, y) >> 3;
 				}
 				memcpy(distancePixels.getPixels() + (depth.Width() * y + x), &depthbit, sizeof(short));
 				if(bIsDepthNearValueWhite){

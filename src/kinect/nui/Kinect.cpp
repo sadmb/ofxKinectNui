@@ -220,6 +220,10 @@ namespace kinect {
 		LONG Kinect::GetColorPixelCoordinatesFromDepthPixel(LONG lDepthPixel, USHORT usDepthValue)
 		{
 			LONG lDepthX, lDepthY;
+			if(lDepthPixel == 0){
+				return -1;
+			}
+
 			lDepthX = (LONG)(lDepthPixel % DepthStream().Width());
 			lDepthY = (LONG)(lDepthPixel / DepthStream().Width());
 			LONG plColorX = 0, plColorY = 0;

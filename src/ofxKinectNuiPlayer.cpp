@@ -73,6 +73,7 @@ ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 	bLoop = false;
 	bVideo = false;
 	bDepth = false;
+	bCalibratedVideo = false;
 	bLabel = false;
 	bSkeleton = false;
 	bAudio = false;
@@ -93,11 +94,12 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 	unsigned char dst = 0;
 	fread(&dst, sizeof(char), 1, f);
 
-	bVideo = (bool)((dst >> 4) & 0x7);
-	bDepth = (bool)((dst >> 3) & 0x7);
-	bLabel = (bool)((dst >> 2) & 0x7);
-	bSkeleton = (bool)((dst >> 1) & 0x7);
-	bAudio = (bool)((dst >> 0) & 0x7);
+	bVideo = (bool)((dst >> 5) & 0x1);
+	bDepth = (bool)((dst >> 4) & 0x1);
+	bCalibratedVideo = (bool)((dst >> 3) & 0x1);
+	bLabel = (bool)((dst >> 2) & 0x1);
+	bSkeleton = (bool)((dst >> 1) & 0x1);
+	bAudio = (bool)((dst >> 0) & 0x1);
 	
 
 	NUI_IMAGE_RESOLUTION videoResolution;
@@ -163,19 +165,18 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 		}
 		memset(depthPixels.getPixels(), 0, depthWidth * depthHeight);
 	}
+	if(bCalibratedVideo){
+		if(!calibratedVideoPixels.isAllocated()){
+			calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
+		}
+		memset(calibratedVideoPixels.getPixels(), 0, depthWidth * depthHeight * 3);
+	}
 	if(bLabel){
 		if(!labelPixels.isAllocated()){
 			labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
 		}
 		memset(labelPixels.getPixels(), 0, depthWidth * depthHeight * 4);
 	}
-	if(bVideo && bDepth){
-		if(!calibratedVideoPixels.isAllocated()){
-			calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
-		}
-		memset(calibratedVideoPixels.getPixels(), 0, depthWidth * depthHeight * 3);
-	}
-
 	if(!videoTexture.isAllocated() && bUsesTexture && bVideo){
 		videoTexture.allocate(width, height, GL_RGB);
 	}
@@ -279,7 +280,7 @@ void ofxKinectNuiPlayer::update(){
 	if(bDepth){
 		fread(distancePixels.getPixels(), sizeof(unsigned short), depthWidth * depthHeight, f);
 	}
-	if(bVideo && bDepth){
+	if(bCalibratedVideo){
 		fread(calibratedVideoPixels.getPixels(), sizeof(unsigned char), depthWidth * depthHeight * 3, f);
 	}
 	if(bLabel){

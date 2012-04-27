@@ -139,6 +139,7 @@ protected:
 	bool bLoop; ///< is loop?
 	bool bVideo; ///< is video recorded?
 	bool bDepth; ///< is depth recorded?
+	bool bCalibratedVideo; ///< is depth recorded?
 	bool bLabel; ///< is label recorded?
 	bool bSkeleton; ///< is skeleton recorded?
 	bool bAudio;	///< is audio recorded?

@@ -17,6 +17,7 @@ void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
 	kinect.init(true, true, true, true, true, true, true, true); // enable all captures
+//	kinect.init(true, true,false, true);
 	kinect.open(true);
 //	kinect.open(true); // when you want to use near mode
 
@@ -96,6 +97,10 @@ void testApp::draw() {
 			ofEnableAlphaBlending();
 			kinectPlayer.drawDepth(20, 340, 400, 300);
 			kinectPlayer.drawLabel(20, 340, 400, 300);
+
+
+			kinectPlayer.drawDepth(0, 0, 1024, 768);
+			kinectPlayer.drawLabel(0, 0, 1024, 768);
 			ofDisableAlphaBlending();
 			kinectPlayer.drawSkeleton(20, 20, 400, 300);
 		}
