@@ -861,8 +861,8 @@ float ofxKinectNuiPlayer::getAudioAngleConfidence() {
 	@return	Scaled skeleton point
 */
 ofPoint ofxKinectNuiPlayer::calcScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
-	float px = min((skeletonPoint.x * width) + 0.5f, (float)width);
-	float py = min((skeletonPoint.y * height) + 0.5f, (float)height);
+	float px = ofMap(skeletonPoint.x, 0, depthWidth, 0, width);
+	float py = ofMap(skeletonPoint.y+15, 0, depthHeight, 0, height); // +15 - the skeletons are a little high
 	return ofPoint(px, py);
 }
 
