@@ -127,8 +127,10 @@ void ofxKinectNuiRecorder::update() {
 	if(labelPixels != NULL){
 		fwrite(labelPixels, sizeof(char), depthWidth * depthHeight * 4, f);
 	}
-	
-	ofPoint** skeletonPoints = mKinect->getSkeletonPoints();
+
+	const ofPoint* skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT];
+	int validCount = mKinect->getSkeletonPoints(skeletonPoints);
+
 	if(skeletonPoints != NULL){
 		int ptr = 0;
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){

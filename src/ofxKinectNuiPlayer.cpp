@@ -8,7 +8,6 @@ ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	f = NULL;
 	filename = "";
 	skeletons = NULL;
-	skeletonPoints = NULL;
 	soundBuffer.clear();
 	fps = 30;
 
@@ -55,12 +54,6 @@ ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 		calibratedVideoPixels.clear();
 	}
 
-	if(skeletonPoints != NULL){
-		delete[] skeletonPoints[0];
-		skeletonPoints[0] = NULL;
-		delete[] skeletonPoints;
-		skeletonPoints = NULL;
-	}
 	if(skeletons != NULL){
 		delete[] skeletons;
 		skeletons = NULL;
@@ -152,30 +145,30 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 		if(!videoPixels.isAllocated()){
 			videoPixels.allocate(width, height, OF_PIXELS_RGB);
 		}
-		memset(videoPixels.getPixels(), 0, width * height * 3);
+//		memset(videoPixels.getPixels(), 0, width * height * 3);
 	}
 	if(bDepth){
 		if(!distancePixels.isAllocated()){
 			distancePixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
-		memset(distancePixels.getPixels(), 0, depthWidth * depthHeight);
+//		memset(distancePixels.getPixels(), 0, depthWidth * depthHeight);
 
 		if(!depthPixels.isAllocated()){
 			depthPixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
-		memset(depthPixels.getPixels(), 0, depthWidth * depthHeight);
+//		memset(depthPixels.getPixels(), 0, depthWidth * depthHeight);
 	}
 	if(bCalibratedVideo){
 		if(!calibratedVideoPixels.isAllocated()){
 			calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
 		}
-		memset(calibratedVideoPixels.getPixels(), 0, depthWidth * depthHeight * 3);
+//		memset(calibratedVideoPixels.getPixels(), 0, depthWidth * depthHeight * 3);
 	}
 	if(bLabel){
 		if(!labelPixels.isAllocated()){
 			labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
 		}
-		memset(labelPixels.getPixels(), 0, depthWidth * depthHeight * 4);
+//		memset(labelPixels.getPixels(), 0, depthWidth * depthHeight * 4);
 	}
 	if(!videoTexture.isAllocated() && bUsesTexture && bVideo){
 		videoTexture.allocate(width, height, GL_RGB);
@@ -191,16 +184,8 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 		if(skeletons == NULL){
 			skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
 		}
-		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3; i++){
-			skeletons[i] = -1.0f;
-		}
-
-		if(skeletonPoints == NULL){
-			skeletonPoints = new ofPoint*[kinect::nui::SkeletonFrame::SKELETON_COUNT];
-			skeletonPoints[0] = new ofPoint[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT];
-			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
-				skeletonPoints[i] = skeletonPoints[0] + i * kinect::nui::SkeletonData::POSITION_COUNT;
-			}
+		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
+			skeletonPoints[i][0] = -1;
 		}
 	}
 
@@ -473,58 +458,71 @@ void ofxKinectNuiPlayer::drawDepth(const ofRectangle & rect){
 */
 void ofxKinectNuiPlayer::drawSkeleton(float x, float y, float w, float h){
 	if(bSkeleton){
+		ofPushMatrix();
+		ofTranslate(x, y);
+		ofScale(1/(float)depthWidth * w, 1/(float)depthHeight * h);
+		ofPushStyle();
+		ofPolyline pLine;
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
 			if((int)skeletonPoints[i][0].x < 0 && (int)skeletonPoints[i][0].y < 0 && (int)skeletonPoints[i][0].z < 0){
 				continue;
 			}
-			ofPushMatrix();
-			ofTranslate(x, y);
-			ofPushStyle();
 			ofSetColor(255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i), 255 * (int)pow(-1.0, i + 1));
 			ofNoFill();
 			ofSetLineWidth(4);
-
 			// HEAD
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HEAD], w, h));
-		
+			pLine.clear();
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE].x, skeletonPoints[i][NUI_SKELETON_POSITION_SPINE].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HEAD].x, skeletonPoints[i][NUI_SKELETON_POSITION_HEAD].y);
+			pLine.draw();
+			
 			// BODY_LEFT
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT], w, h));
+			pLine.clear();
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT].y);
+			pLine.draw();
 
 			// BODY_RIGHT
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT], w, h));
-		
+			pLine.clear();
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT].y);
+			pLine.draw();
+	
 			// LEG_LEFT
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT], w, h));
+			pLine.clear();
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT].y);
+			pLine.draw();
 
 			// LEG_RIGHT
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT], w, h));
-			ofLine(calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT], w, h), calcScaledSkeletonPoint(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT], w, h));
-		
+			pLine.clear();
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT].y);
+			pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT].y);
+			pLine.draw();
 		
 			ofSetColor(255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i));
 			ofSetLineWidth(0);
 			ofFill();
 			for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
-				ofCircle(calcScaledSkeletonPoint(skeletonPoints[i][j], w, h), 5);
+				ofCircle(skeletonPoints[i][j].x, skeletonPoints[i][j].y, 5);
 			}
-			ofPopStyle();
-			ofPopMatrix();
 		}
-	}else{
-		ofLog(OF_LOG_WARNING, "ofxKinectNuiPlayer: You should set Skeleton true");
+		ofPopStyle();
+		ofPopMatrix();
 	}
 }
 

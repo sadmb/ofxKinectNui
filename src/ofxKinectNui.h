@@ -97,7 +97,7 @@ public:
 	ofTexture& getDepthTextureReference();
 	ofTexture& getLabelTextureReference();
 	
-	ofPoint** getSkeletonPoints();
+	int getSkeletonPoints(const ofPoint* ret[]);
 	
 	ofColor getColorAt(int x, int y);
 	ofColor getColorAt(const ofPoint& point);
@@ -181,7 +181,7 @@ protected:
 	ofTexture depthTexture;				///< depth texture
 	ofTexture labelTexture;				///< label texture
 
-	ofPoint** skeletonPoints;	///< joint points of all skeletons
+	ofPoint skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT][kinect::nui::SkeletonData::POSITION_COUNT];	///< joint points of all skeletons
 
 	int targetAngle;	///< target angle of kinect tilt
 	
