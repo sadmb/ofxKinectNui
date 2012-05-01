@@ -123,7 +123,7 @@ void ofxKinectNuiRecorder::update() {
 		fwrite(calibratedVideoPixels, sizeof(char), depthWidth * depthHeight * 3, f);
 	}
 
-	unsigned char* labelPixels = mKinect->getLabelPixels().getPixels();
+	unsigned char* labelPixels = mKinect->getLabelPixels().getPixels(); 
 	if(labelPixels != NULL){
 		fwrite(labelPixels, sizeof(char), depthWidth * depthHeight * 4, f);
 	}
@@ -132,15 +132,15 @@ void ofxKinectNuiRecorder::update() {
 	int validCount = mKinect->getSkeletonPoints(skeletonPoints);
 
 	if(skeletonPoints != NULL){
-		int ptr = 0;
-		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
-			for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
+		for(int i = 0; i < validCount; i++){
+			for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
 				skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3] = skeletonPoints[i][j].x;
 				skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 1] = skeletonPoints[i][j].y;
 				skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 2] = skeletonPoints[i][j].z;
 			}
 		}
-		fwrite(skeletons, sizeof(float), kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
+		fwrite(&validCount, sizeof(int), 1, f);
+		fwrite(skeletons, sizeof(float), validCount * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
 	}
 
 	if(mKinect->grabsAudio()){

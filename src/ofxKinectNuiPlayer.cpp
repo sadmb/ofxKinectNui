@@ -272,12 +272,16 @@ void ofxKinectNuiPlayer::update(){
 		fread(labelPixels.getPixels(), sizeof(unsigned char), depthWidth * depthHeight * 4, f);
 	}
 	if(bSkeleton){
-		fread(skeletons, sizeof(float), kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
-		for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
-			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
-				skeletonPoints[i][j].x = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3];
-				skeletonPoints[i][j].y = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 1];
-				skeletonPoints[i][j].z = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 2];
+		int validCount;
+		fread(&validCount, sizeof(int), 1, f);
+		if(validCount > 0) {
+			fread(skeletons, sizeof(float), validCount * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
+			for(int i = 0; i < validCount; ++i) {
+				for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
+					skeletonPoints[i][j].x = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3];
+					skeletonPoints[i][j].y = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 1];
+					skeletonPoints[i][j].z = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 2];
+				}
 			}
 		}
 	}
@@ -464,7 +468,7 @@ void ofxKinectNuiPlayer::drawSkeleton(float x, float y, float w, float h){
 		ofPushStyle();
 		ofPolyline pLine;
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; i++){
-			if((int)skeletonPoints[i][0].x < 0 && (int)skeletonPoints[i][0].y < 0 && (int)skeletonPoints[i][0].z < 0){
+			if(skeletonPoints[i][0].z < 0){
 				continue;
 			}
 			ofSetColor(255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i), 255 * (int)pow(-1.0, i + 1));

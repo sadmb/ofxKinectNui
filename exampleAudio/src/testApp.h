@@ -16,6 +16,8 @@
 #include "ofxKinectNuiSoundRecorder.h"
 #include "ofMain.h"
 
+class ofxKinectNuiDrawTexture;
+
 class testApp : public ofBaseApp {
 	public:
 
@@ -50,5 +52,7 @@ class testApp : public ofBaseApp {
 		bool bUnplugged;
 		
 		int angle;
+	private:
+		ofxKinectNuiDrawTexture* videoDraw_;
 
 };

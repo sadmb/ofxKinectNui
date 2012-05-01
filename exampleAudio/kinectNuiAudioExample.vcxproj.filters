@@ -39,6 +39,9 @@
     <ClCompile Include="..\src\ofxKinectNuiSoundRecorder.cpp">
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\ofxKinectNuiDraw.cpp">
+      <Filter>addons\ofxKinectNui\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\addons\ofxKinectNui\src\win32\Event.h">
@@ -94,6 +97,12 @@
       <Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
     </ClInclude>
     <ClInclude Include="..\src\ofxKinectNuiSoundRecorder.h">
+      <Filter>addons\ofxKinectNui\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ofxKinectNuiDraw.h">
+      <Filter>addons\ofxKinectNui\src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\ofxKinectNuiDrawInterface.h">
       <Filter>addons\ofxKinectNui\src</Filter>
     </ClInclude>
   </ItemGroup>

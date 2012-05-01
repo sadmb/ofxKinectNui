@@ -1,4 +1,5 @@
 #include "ofxKinectNui.h"
+#include "ofxKinectNuiDraw.h"
 
 const UINT color[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM] = {
 	0x00FFFFFF,	/// no user
@@ -26,6 +27,12 @@ ofxKinectNui::ofxKinectNui(){
 	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
 	labelPixelsCv = NULL;
+	updateFlagDefault_ = UPDATE_FLAG_NONE;
+
+	videoDraw_ = NULL;
+	depthDraw_ = NULL;
+	labelDraw_ = NULL;
+	skeletonDraw_ = NULL;
 
 	addKinectListener(this, &ofxKinectNui::pluggedFunc, &ofxKinectNui::unpluggedFunc);
 }
@@ -33,17 +40,6 @@ ofxKinectNui::ofxKinectNui(){
 //---------------------------------------------------------------------------
 ofxKinectNui::~ofxKinectNui(){
 	close();
-
-	// clear textures
-	if(videoTexture.isAllocated()){
-		videoTexture.clear();
-	}
-	if(depthTexture.isAllocated()){
-		depthTexture.clear();
-	}
-	if(labelTexture.isAllocated()){
-		labelTexture.clear();
-	}
 
 	// clear pixels data
 	if(videoPixels.isAllocated()){
@@ -80,6 +76,25 @@ ofxKinectNui::~ofxKinectNui(){
 }
 
 //---------------------------------------------------------------------------
+bool ofxKinectNui::init(){
+	InitSetting setting;
+	return init(setting);
+}
+bool ofxKinectNui::init(const InitSetting& setting){
+	return init(setting.grabVideo,
+				setting.grabDepth,
+				setting.grabAudio,
+				setting.grabLabel,
+				setting.grabSkeleton,
+				setting.grabCalibratedVideo,
+				setting.grabLabelCv,
+				setting.videoResolution,
+				setting.depthResolution);
+}
+
+
+
+
 /**
 	@brief	initialize kinect sensor
 	@param	grabVideo			set false to disable video capture
@@ -89,7 +104,6 @@ ofxKinectNui::~ofxKinectNui(){
 	@param	grabSkeleton		set true to enable skeleton capture, only the first kinect sensor can capture. 
 	@param	grabCalibratedVideo	set true to enable calibratedVideo capture
 	@param	grabLabelCv			set true to enable separated label capture for cv use, only the first kinect sensor can capture.
-	@param	useTexture			set false when you don't need texture: you just want to get pixels and draw on openCV etc.
 	@param	videoResolution		default is 640x480
 	@param	depthResolution		default is 320x240
 	*/
@@ -100,7 +114,6 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 						bool grabSkeleton /*= false*/,
 						bool grabCalibratedVideo /*= false*/,
 						bool grabLabelCv /*= false*/,
-						bool useTexture /*= true*/,
 						NUI_IMAGE_RESOLUTION videoResolution /*= NUI_IMAGE_RESOLUTION_640x480*/,
 						NUI_IMAGE_RESOLUTION depthResolution /*=NUI_IMAGE_RESOLUTION_320x240*/){
 
@@ -124,7 +137,6 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 	bGrabsSkeleton = grabSkeleton;
 	bGrabsCalibratedVideo = grabCalibratedVideo;
 	bGrabsLabelCv = grabLabelCv;
-	bUsesTexture = useTexture;
 	mVideoResolution = videoResolution;
 	mDepthResolution = depthResolution;
 
@@ -198,50 +210,40 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 	}
 
 	DWORD dwFlags = 0x00000000;
+	updateFlagDefault_ = UPDATE_FLAG_NONE;
 	if(bGrabsVideo){
-		if(bUsesTexture){
-			videoTexture.allocate(width, height, GL_RGB);
-		}
-
 		int length = width * height;
 		if(!videoPixels.isAllocated()){
 			videoPixels.allocate(width, height, OF_PIXELS_RGB);
 		}
-//		memset(videoPixels.getPixels(), 0, length * 3 * sizeof(unsigned char));
+		updateFlagDefault_ |= UPDATE_FLAG_VIDEO;
 
 		dwFlags |= NUI_INITIALIZE_FLAG_USES_COLOR;
 	}
 	if(bGrabsDepth){
-		if(bUsesTexture){
-			depthTexture.allocate(depthWidth, depthHeight, GL_LUMINANCE);
-		}
-
 		int length = depthWidth * depthHeight;
 		if(!depthPixels.isAllocated()){
 			depthPixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
-		memset(depthPixels.getPixels(), 0, length * sizeof(unsigned char));
+		updateFlagDefault_ |= UPDATE_FLAG_DEPTH;
 		if(!distancePixels.isAllocated()){
 			distancePixels.allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 		}
-//		memset(distancePixels.getPixels(), 0, length * sizeof(unsigned short));
+		updateFlagDefault_ |= UPDATE_FLAG_DISTANCE;
 
 		if(bGrabsCalibratedVideo){
 			if(!calibratedVideoPixels.isAllocated()){
 				calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
 			}
-//			memset(calibratedVideoPixels.getPixels(), 0, length * 3 * sizeof(unsigned char));
+			updateFlagDefault_ |= UPDATE_FLAG_CALIBRATED_VIDEO;
 		}
 
 		if(bGrabsLabel || bGrabsLabelCv){
 			if(bGrabsLabel){
-				if(bUsesTexture){
-					labelTexture.allocate(depthWidth, depthHeight, GL_RGBA);
-				}
 				if(!labelPixels.isAllocated()){
 					labelPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGBA);
 				}
-//				memset(labelPixels.getPixels(), 0, length * 4 * sizeof(unsigned char));
+				updateFlagDefault_ |= UPDATE_FLAG_LABEL;
 			}
 
 			if(bGrabsLabelCv){
@@ -252,8 +254,8 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 					if(!labelPixelsCv[i].isAllocated()){
 						labelPixelsCv[i].allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
 					}
-//					memset(labelPixelsCv[i].getPixels(), 0, length * sizeof(unsigned char));
 				}
+				updateFlagDefault_ |= UPDATE_FLAG_LABEL_CV;
 			}
 
 			dwFlags |= NUI_INITIALIZE_FLAG_USES_DEPTH_AND_PLAYER_INDEX;
@@ -262,9 +264,11 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		}
 	}
 	if(bGrabsAudio){
+		updateFlagDefault_ |= UPDATE_FLAG_AUDIO;
 		dwFlags |= NUI_INITIALIZE_FLAG_USES_AUDIO;
 	}
 	if(bGrabsSkeleton){
+		updateFlagDefault_ |= UPDATE_FLAG_SKELETON;
 		dwFlags |= NUI_INITIALIZE_FLAG_USES_SKELETON;
 
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
@@ -291,7 +295,7 @@ bool ofxKinectNui::open(bool nearmode /*= false */){
 		bIsNearmode = nearmode;
 		if(isInited()){
 			if(!kinect.IsInited()){
-				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsSkeleton, bUsesTexture, mVideoResolution, mDepthResolution);
+				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsSkeleton, mVideoResolution, mDepthResolution);
 			}
 		}
 		if(bGrabsVideo){
@@ -315,6 +319,20 @@ bool ofxKinectNui::open(bool nearmode /*= false */){
 	return false;
 }
 
+void ofxKinectNui::setVideoDrawer(IDrawPixels* drawer){
+	videoDraw_ = drawer;
+}
+void ofxKinectNui::setDepthDrawer(IDrawPixels* drawer){
+	depthDraw_ = drawer;
+}
+void ofxKinectNui::setLabelDrawer(IDrawPixels* drawer){
+	labelDraw_ = drawer;
+}
+
+void ofxKinectNui::setSkeletonDrawer(IDrawPoints* drawer){
+	skeletonDraw_ = drawer;
+}
+
 //---------------------------------------------------------------------------
 /**
 	@brief	close stream
@@ -331,15 +349,30 @@ void ofxKinectNui::close(){
 /**
 	@brief	update stream data.
 */
-void ofxKinectNui::update(){
+void ofxKinectNui::update(UINT flag){
 	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
 		return;
 	}
+	flag &= updateFlagDefault_;
 
-	// wait and update all data
-	kinect.WaitAndUpdateAll();
-		
-	if(bGrabsVideo){
+	// wait and update data
+	UINT kinectUpdateFlag = kinect::nui::Kinect::UPDATE_FLAG_NONE;
+	if(flag & UPDATE_FLAG_GROUP_VIDEO) {
+		kinectUpdateFlag |= kinect::nui::Kinect::UPDATE_FLAG_VIDEO;
+	}
+	if(flag & UPDATE_FLAG_GROUP_DEPTH) {
+		kinectUpdateFlag |= kinect::nui::Kinect::UPDATE_FLAG_DEPTH;
+	}
+	if(flag & UPDATE_FLAG_GROUP_AUDIO) {
+		kinectUpdateFlag |= kinect::nui::Kinect::UPDATE_FLAG_AUDIO;
+	}
+	if(flag & UPDATE_FLAG_GROUP_SKELETON) {
+		kinectUpdateFlag |= kinect::nui::Kinect::UPDATE_FLAG_SKELETON;
+	}
+	
+	kinect.WaitAndUpdate(kinectUpdateFlag);
+	
+	if(flag & UPDATE_FLAG_GROUP_VIDEO){
 		// Get the video data of next frame
 		kinect::nui::VideoFrame video(kinect.VideoStream());
 		if( video.Pitch() == 0 ) {
@@ -358,9 +391,12 @@ void ofxKinectNui::update(){
 				memcpy(videoPixels.getPixels() + (offset + x) * 3, &videobit, sizeof(char) * 3);
 			}
 		}
+		if(videoDraw_ && (flag & UPDATE_FLAG_VIDEO)) {
+			videoDraw_->setSource(videoPixels);
+		}
 	}
 
-	if(bGrabsDepth){
+	if(flag & UPDATE_FLAG_GROUP_DEPTH){
 		// Get the depth data of next frame
 		kinect::nui::DepthFrame depth(kinect.DepthStream());
 		unsigned short depthbit;
@@ -371,35 +407,34 @@ void ofxKinectNui::update(){
 			int offset = y*w;
 			for(int x = 0; x < w; ++x){
 				int depthIndex = offset + x;
-				if(bGrabsLabel || bGrabsLabelCv){
-					depthbit = depth(x, y) >> 3;
-					playerLabel = depth(x, y) & 0x7;
-					if(bGrabsLabel){
-						memcpy(labelPixels.getPixels() + depthIndex * 4, &color[playerLabel], sizeof(char) * 4);
-					}
-					if(bGrabsLabelCv){
-						for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
-							unsigned short lb;
-							if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
-								lb = 0xFF;
-								memcpy(labelPixelsCv[i].getPixels() + depthIndex, &lb, sizeof(char));
-							}else{
-								lb = 0x00;
-								memcpy(labelPixelsCv[i].getPixels() + depthIndex, &lb, sizeof(char));
-							}
+				depthbit = depth(x, y) >> 3;
+				playerLabel = depth(x, y) & 0x7;
+				if(flag & UPDATE_FLAG_LABEL){
+					memcpy(labelPixels.getPixels() + depthIndex * 4, &color[playerLabel], sizeof(char) * 4);
+				}
+				if(flag & UPDATE_FLAG_LABEL_CV){
+					for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
+						unsigned char lb;
+						if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
+							lb = 0xFF;
+							memcpy(labelPixelsCv[i].getPixels() + depthIndex, &lb, sizeof(char));
+						}else{
+							lb = 0x00;
+							memcpy(labelPixelsCv[i].getPixels() + depthIndex, &lb, sizeof(char));
 						}
 					}
-				}else{
-					// update for Kinect for Windows
-					depthbit = depth(x, y) >> 3;
 				}
-				memcpy(distancePixels.getPixels() + depthIndex, &depthbit, sizeof(short));
-				if(bIsDepthNearValueWhite){
-					depthPixels[depthIndex] = depthPixelsLookupNearWhite[depthbit];
-				}else{
-					depthPixels[depthIndex] = depthPixelsLookupFarWhite[depthbit];
+				if(flag & UPDATE_FLAG_DISTANCE) {
+					memcpy(distancePixels.getPixels() + depthIndex, &depthbit, sizeof(short));
 				}
-				if(bGrabsCalibratedVideo){
+				if(flag & UPDATE_FLAG_DEPTH) {
+					if(bIsDepthNearValueWhite){
+						depthPixels[depthIndex] = depthPixelsLookupNearWhite[depthbit];
+					}else{
+						depthPixels[depthIndex] = depthPixelsLookupFarWhite[depthbit];
+					}
+				}
+				if(flag & UPDATE_FLAG_CALIBRATED_VIDEO) {
 					long vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depthIndex, 0) * 3;
 					for(int i = 0; i < 3; ++i){
 						unsigned char vbit;
@@ -413,8 +448,14 @@ void ofxKinectNui::update(){
 				}
 			}
 		}
+		if(depthDraw_ && (flag & UPDATE_FLAG_DEPTH)) {
+			depthDraw_->setSource(depthPixels);
+		}
+		if(labelDraw_ && (flag & UPDATE_FLAG_LABEL)) {
+			labelDraw_->setSource(labelPixels);
+		}
 	}
-	if(bGrabsSkeleton){
+	if(flag & UPDATE_FLAG_GROUP_SKELETON){
 		// Get the skeleton data of next frame
 		kinect::nui::SkeletonFrame skeleton = kinect.Skeleton().GetNextFrame();
 		if(skeleton.IsFoundSkeleton()){
@@ -426,32 +467,27 @@ void ofxKinectNui::update(){
 						skeletonPoints[i][j] = ofPoint(p.x, p.y, p.depth);
 					}
 				}else{
-					// if skeleton is not tracked, set top z data to -1.
+					// if skeleton is not tracked, set top z data negative.
 					skeletonPoints[i][0].z = -1;
 					continue;
 				}
 			}
 		}
+		else {
+			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
+				// if skeleton is not tracked, set top z data negative.
+				skeletonPoints[i][0].z = -1;
+			}
+		}
 	}
 
-	if(bGrabsAudio){
+	if(flag & UPDATE_FLAG_GROUP_AUDIO){
 		soundBuffer = kinect.AudioStream().Read();
 		audioBeamAngle = (float)kinect.AudioStream().GetAudioBeamAngle();
 		audioAngle = (float)kinect.AudioStream().GetAudioAngle();
 		audioAngleConfidence = (float)kinect.AudioStream().GetAudioAngleConfidence();
 	}
 
-	if(bUsesTexture){
-		if(bGrabsVideo){
-			videoTexture.loadData(videoPixels);
-		}
-		if(bGrabsDepth){
-			depthTexture.loadData(depthPixels);
-		}
-		if(bGrabsLabel){
-			labelTexture.loadData(labelPixels);
-		}
-	}
 	bIsFrameNew = true;
 }
 
@@ -471,201 +507,39 @@ void ofxKinectNui::unpluggedFunc(){
 }
 
 //---------------------------------------------------------------------------
-/**
-	@brief	Draw video images from camera
-	@param	x	X position to draw
-	@param	y	Y position to draw
-	@param	w	width of drawing area
-	@param	h	height of drawing area
-*/
-void ofxKinectNui::draw(float x, float y, float w, float h){
-	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
-		return;
-	}
-
-	if(bUsesTexture && bGrabsVideo){
-		videoTexture.draw(x, y, w, h);
-	}else{
-		ofLog(OF_LOG_WARNING, "ofxKinectNui: You should set UsesTexture and GrabsVideo true");
-	}
+void ofxKinectNui::drawVideo(){
+	videoDraw_->draw();
+}
+//---------------------------------------------------------------------------
+void ofxKinectNui::drawDepth(){
+	depthDraw_->draw();
+}
+//---------------------------------------------------------------------------
+void ofxKinectNui::drawLabel(){
+	labelDraw_->draw();
 }
 
 //---------------------------------------------------------------------------
-/**
-	@brief	Draw video images from camera
-	@param	x	X position to draw
-	@param	y	Y position to draw
-*/
-void ofxKinectNui::draw(float x, float y){
-	draw(x, y, width, height);
+void ofxKinectNui::drawSkeleton(){
+	for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
+		// if z is negative the skeleton is not tracked
+		if(skeletonPoints[i][0].z < 0) {
+			continue;
+		}
+		skeletonDraw_->draw(skeletonPoints[i]);
+ 	}
 }
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw video images from camera
-	@param	point	The point to draw
-*/
-void ofxKinectNui::draw(const ofPoint& point){
-	draw(point.x, point.y);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw video images from camera
-	@param	point	The point to draw
-	@param	w	width of drawing area
-	@param	h	height of drawing area
-*/
-void ofxKinectNui::draw(const ofPoint& point, float w, float h){
-	draw(point.x, point.y, w, h);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw video images from camera
-	@param	rect	The rectangle area to draw
-*/
-void ofxKinectNui::draw(const ofRectangle& rect){
-	draw(rect.x, rect.y, rect.width, rect.height);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw depth images
-	@param	x	X position to draw
-	@param	y	Y position to draw
-	@param	w	width of drawing area
-	@param	h	height of drawing area
-*/
-void ofxKinectNui::drawDepth(float x, float y, float w, float h){
-	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
-		return;
-	}
-
-	if(bUsesTexture && bGrabsDepth){
-		depthTexture.draw(x, y, w, h);
-	}else{
-		ofLog(OF_LOG_WARNING, "ofxKinectNui: You should set UsesTexture and GrabsDepth true");
-	}
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw depth images
-	@param	x	X position to draw
-	@param	y	Y position to draw
-*/
-void ofxKinectNui::drawDepth(float x, float y){
-	draw(x, y, depthWidth, depthHeight);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw depth images
-	@param	point	The point to draw
-*/
-void ofxKinectNui::drawDepth(const ofPoint& point){
-	draw(point.x, point.y);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw depth images
-	@param	point	The point to draw
-	@param	w	width of drawing area
-	@param	h	height of drawing area
-*/
-void ofxKinectNui::drawDepth(const ofPoint& point, float w, float h){
-	draw(point.x, point.y, w, h);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw depth images
-	@param	rect	The rectangle area to draw
-*/
-void ofxKinectNui::drawDepth(const ofRectangle& rect){
-	draw(rect.x, rect.y, rect.width, rect.height);
-}
-
-//---------------------------------------------------------------------------
 /**
 	@brief	Draw skeleton images
 	@param	x	X position to draw
 	@param	y	Y position to draw
 */
 void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
-	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
-		return;
-	}
-
-	if(bGrabsSkeleton){
-		ofPushMatrix();
-		ofScale(1/(float)depthWidth * w, 1/(float)depthHeight * h);
-		ofTranslate(x, y);
-		ofPushStyle();
-		ofPolyline pLine;
-		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
-			// if z<0 the skeleton is not tracked
-			if(skeletonPoints[i][0].z >= 0) {
-				ofSetColor(255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i), 255 * (int)pow(-1.0, i + 1));
-				ofNoFill();
-				ofSetLineWidth(4);
-				// HEAD
-				pLine.clear();
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SPINE].x, skeletonPoints[i][NUI_SKELETON_POSITION_SPINE].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HEAD].x, skeletonPoints[i][NUI_SKELETON_POSITION_HEAD].y);
-				pLine.draw();
-				
-				// BODY_LEFT
-				pLine.clear();
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_LEFT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_LEFT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_LEFT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HAND_LEFT].y);
-				pLine.draw();
-
-				// BODY_RIGHT
-				pLine.clear();
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_CENTER].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_SHOULDER_RIGHT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ELBOW_RIGHT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_WRIST_RIGHT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HAND_RIGHT].y);
-				pLine.draw();
-		
-				// LEG_LEFT
-				pLine.clear();
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_LEFT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_LEFT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_LEFT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT].x, skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_LEFT].y);
-				pLine.draw();
-
-				// LEG_RIGHT
-				pLine.clear();
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_CENTER].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_HIP_RIGHT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_KNEE_RIGHT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_ANKLE_RIGHT].y);
-				pLine.addVertex(skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT].x, skeletonPoints[i][NUI_SKELETON_POSITION_FOOT_RIGHT].y);
-				pLine.draw();
-		
-				ofSetColor(255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i + 1), 255 * (int)pow(-1.0, i));
-				ofSetLineWidth(0);
-				ofFill();
-				for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
-					ofCircle(skeletonPoints[i][j].x, skeletonPoints[i][j].y, 5);
-				}
-			}
-		}
-		ofPopStyle();
-		ofPopMatrix();
-	}
+	ofPushMatrix();
+	ofScale(1/(float)depthWidth * w, 1/(float)depthHeight * h);
+	ofTranslate(x, y);
+	drawSkeleton();
+	ofPopMatrix();
 }
 
 //---------------------------------------------------------------------------
@@ -705,65 +579,6 @@ void ofxKinectNui::drawSkeleton(const ofPoint& point, float w, float h){
 */
 void ofxKinectNui::drawSkeleton(const ofRectangle& rect){
 	drawSkeleton(rect.x, rect.y, rect.width, rect.height);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw label images
-	@param	x	X position to draw
-	@param	y	Y position to draw
-	@param	w	width of drawing area
-	@param	h	height of drawing area
-*/
-void ofxKinectNui::drawLabel(float x, float y, float w, float h){
-	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
-		return;
-	}
-
-	if(bUsesTexture && bGrabsLabel){
-		labelTexture.draw(x, y, w, h);
-	}else{
-		ofLog(OF_LOG_WARNING, "ofxKinectNui: You should set UsesTexture and GrabsLabel true");
-	}
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw label images
-	@param	x	X position to draw
-	@param	y	Y position to draw
-*/
-void ofxKinectNui::drawLabel(float x, float y){
-	drawLabel(x, y, width, height);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw label images
-	@param	point	The point to draw
-*/
-void ofxKinectNui::drawLabel(const ofPoint& point){
-	drawLabel(point.x, point.y);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw label images
-	@param	point	The point to draw
-	@param	w	width of drawing area
-	@param	h	height of drawing area
-*/
-void ofxKinectNui::drawLabel(const ofPoint& point, float w, float h){
-	drawLabel(point.x, point.y, w, h);
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Draw label images
-	@param	rect	The rectangle area to draw
-*/
-void ofxKinectNui::drawLabel(const ofRectangle& rect){
-	drawLabel(rect.x, rect.y, rect.width, rect.height);
 }
 
 //---------------------------------------------------------------------------
@@ -883,43 +698,6 @@ std::vector<BYTE> ofxKinectNui::getSoundBuffer(){
 
 //---------------------------------------------------------------------------
 /**
-	@brief	Get video texture
-	@return	Video texture
-*/
-ofTexture& ofxKinectNui::getVideoTextureReference(){
-	if(!videoTexture.isAllocated()){
-		ofLog(OF_LOG_WARNING, "ofxKinectNui: getTextureReference - video texture is not allocated");
-	}
-	return videoTexture;
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Get depth texture
-	@return	Dideo texture
-*/
-ofTexture& ofxKinectNui::getDepthTextureReference(){
-	if(!depthTexture.isAllocated()){
-		ofLog(OF_LOG_WARNING, "ofxKinectNui: getDepthTextureReference - depth texture is not allocated");
-	}
-	return depthTexture;
-}
-
-//---------------------------------------------------------------------------
-/**
-	@brief	Get label texture
-	@return	Label texture
-*/
-ofTexture& ofxKinectNui::getLabelTextureReference(){
-	if(!labelTexture.isAllocated()){
-		ofLog(OF_LOG_WARNING, "ofxKinectNui: getLabelTextureReference - label texture is not allocated");
-	}
-	return labelTexture;
-}
-
-
-//---------------------------------------------------------------------------
-/**
 	@brief	skeleton point data
 	@return	map data of playerId and its skeleton points
 */
@@ -929,9 +707,9 @@ int ofxKinectNui::getSkeletonPoints(const ofPoint* ret[]){
 	}
 	int valid = 0;
 	for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
-//		if(skeletonPoints[i][0].z >= 0) {
+		if(skeletonPoints[i][0].z >= 0) {
 			ret[valid++] = skeletonPoints[i];
-//		}
+		}
 	}
 	return valid;
 }
@@ -1213,15 +991,6 @@ bool ofxKinectNui::grabsLabelCv(){
 
 //---------------------------------------------------------------------------
 /**
-	@brief	Set uses texture for drawing
-	@return	true when uses texture
-*/
-void ofxKinectNui::setUsesTexture(bool bUse){
-	bUsesTexture = bUse;
-}
-
-//---------------------------------------------------------------------------
-/**
 	@brief	Gets video resolution
 	@return	video image resolution
 */
@@ -1274,16 +1043,3 @@ int ofxKinectNui::getDepthResolutionHeight(){
 	return depthHeight;
 }
 
-//---------------------------------------------------------------------------
-/**
-	@brief	Calculate skeleton points
-	@param	point	0.0-1.0 scaled point
-	@param	width
-	@param	height
-	@return	Scaled point
-*/
-ofPoint ofxKinectNui::calculateScaledSkeletonPoint(const ofPoint& skeletonPoint, float width, float height){
-	float px = skeletonPoint.x / (float)depthWidth * width;
-	float py = skeletonPoint.y / (float)depthHeight * height;
-	return ofPoint(px, py);
-}

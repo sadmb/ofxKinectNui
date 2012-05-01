@@ -11,12 +11,21 @@
  */
 /******************************************************************/
 #include "testApp.h"
+#include "ofxKinectNuiDraw.h"
 
 //--------------------------------------------------------------
 void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
-	kinect.init(true, false, true); // enable all captures
+	ofxKinectNui::InitSetting initSetting;
+	initSetting.grabVideo = true;
+	initSetting.grabDepth = false;
+	initSetting.grabAudio = true;
+	initSetting.grabLabel = false;
+	initSetting.grabSkeleton = false;
+	initSetting.grabCalibratedVideo = false;
+	initSetting.grabLabelCv = false;
+	kinect.init(initSetting);
 	kinect.open();
 
 	
@@ -27,6 +36,9 @@ void testApp::setup() {
 	bPlayback = false;
 	bPlugged = kinect.isConnected();
 	bUnplugged = false;
+
+	videoDraw_ = ofxKinectNuiDrawTexture::createTextureForVideo();
+	kinect.setVideoDrawer(videoDraw_);
 
 	ofSetFrameRate(60);
 }
@@ -43,7 +55,8 @@ void testApp::update() {
 void testApp::draw() {
 	ofBackground(100, 100, 100);
 	if(!bPlayback){
-		kinect.draw(20, 20, 400, 300);			// draw video images from kinect camera
+		videoDraw_->setDrawArea(20, 20, 400, 300);
+		kinect.drawVideo();			// draw video images from kinect camera
 	}
 
 	ofPushMatrix();
@@ -83,6 +96,10 @@ void testApp::draw() {
 
 //--------------------------------------------------------------
 void testApp::exit() {
+	if(videoDraw_) {
+		videoDraw_->destroy();
+		videoDraw_ = NULL;
+	}
 	kinect.setAngle(0);
 	kinect.close();
 	kinect.removeKinectListener(this);

@@ -16,7 +16,16 @@
 void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
-	kinect.init(false, true, false, true, false, false, true, false);	/// only use depth capturing and separated label capturing
+	ofxKinectNui::InitSetting initSetting;
+	initSetting.grabVideo = false;
+	initSetting.grabDepth = true;
+	initSetting.grabAudio = false;
+	initSetting.grabLabel = true;
+	initSetting.grabSkeleton = false;
+	initSetting.grabCalibratedVideo = false;
+	initSetting.grabLabelCv = true;
+	kinect.init(initSetting);
+//	kinect.init(false, true, false, true, false, false, true, false);	/// only use depth capturing and separated label capturing
 	kinect.open();
 
 	ofSetVerticalSync(true);

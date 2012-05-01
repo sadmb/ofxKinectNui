@@ -17,6 +17,9 @@
 #include "ofxKinectNuiPlayer.h"
 #include "ofxKinectNuiRecorder.h"
 
+class ofxKinectNuiDrawTexture;
+class ofxKinectNuiDrawSkeleton;
+
 // uncomment this to read from two kinects simultaneously
 //#define USE_TWO_KINECTS
 
@@ -77,5 +80,10 @@ class testApp : public ofBaseApp {
 		int angle;
 		
 		int mRotationX, mRotationY;
+
+		ofxKinectNuiDrawTexture*	videoDraw_;
+		ofxKinectNuiDrawTexture*	depthDraw_;
+		ofxKinectNuiDrawTexture*	labelDraw_;
+		ofxKinectNuiDrawSkeleton*	skeletonDraw_;
 
 };

@@ -222,6 +222,7 @@ if not exist "$(ProjectDir)\bin\data" mkdir  "$(ProjectDir)\bin\data"
     <ClCompile Include="..\..\..\addons\ofxKinectNui\src\win32\Event.cpp" />
     <ClCompile Include="..\src\kinect\nui\AudioStream.cpp" />
     <ClCompile Include="..\src\kinect\nui\KinectContext.cpp" />
+    <ClCompile Include="..\src\ofxKinectNuiDraw.cpp" />
     <ClCompile Include="..\src\ofxKinectNuiSoundRecorder.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\testApp.cpp" />
@@ -243,6 +244,8 @@ if not exist "$(ProjectDir)\bin\data" mkdir  "$(ProjectDir)\bin\data"
     <ClInclude Include="..\..\..\addons\ofxKinectNui\src\win32\Event.h" />
     <ClInclude Include="..\src\kinect\nui\KinectContext.h" />
     <ClInclude Include="..\src\kinect\nui\KinectListener.h" />
+    <ClInclude Include="..\src\ofxKinectNuiDraw.h" />
+    <ClInclude Include="..\src\ofxKinectNuiDrawInterface.h" />
     <ClInclude Include="..\src\ofxKinectNuiSoundRecorder.h" />
     <ClInclude Include="..\src\win32\CppPreprocessor.h" />
     <ClInclude Include="src\testApp.h" />

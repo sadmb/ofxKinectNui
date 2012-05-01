@@ -111,24 +111,25 @@ namespace kinect {
 
 		//----------------------------------------------------------
 		/**
-			@brief	Wait until all the kinect handler updated
+			@brief	Wait until the kinect handler updated
 		*/
-		void Kinect::WaitAndUpdateAll()
+		void Kinect::WaitAndUpdate(UINT flag)
 		{
 			std::vector< HANDLE >   handle;
-			if ( VideoStream().hStream_ != NULL ) {
+			
+			if ( VideoStream().hStream_ != NULL && (flag & UPDATE_FLAG_VIDEO)) {
 				handle.push_back( VideoStream().event_.get() );
 			}
 
-			if ( DepthStream().hStream_ != NULL ) {
+			if ( DepthStream().hStream_ != NULL && (flag & UPDATE_FLAG_DEPTH)) {
 				handle.push_back( DepthStream().event_.get() );
 			}
 
-			if( AudioStream().hStream_ != NULL ) {
+			if( AudioStream().hStream_ != NULL && (flag & UPDATE_FLAG_AUDIO)) {
 				handle.push_back( AudioStream().event_.get() );
 			}
 
-			if ( Skeleton().IsEnabled() ) {
+			if ( Skeleton().IsEnabled() && (flag & UPDATE_FLAG_SKELETON)) {
 				handle.push_back( Skeleton().event_.get() );
 			}
 

@@ -49,6 +49,15 @@ namespace kinect {
 		class Kinect
 		{
 		public:
+			enum {
+				UPDATE_FLAG_VIDEO		= 0x00000001,
+				UPDATE_FLAG_DEPTH		= 0x00000002,
+				UPDATE_FLAG_SKELETON	= 0x00000004,
+				UPDATE_FLAG_AUDIO		= 0x00000008,
+
+				UPDATE_FLAG_NONE		= 0x00000000,
+				UPDATE_FLAG_ALL			= 0xFFFFFFFF,
+			};
 
 			Kinect(int index = -1);
 			Kinect(BSTR deviceName);
@@ -60,7 +69,8 @@ namespace kinect {
 			bool IsInited();
 			bool IsConnected();
 
-			void WaitAndUpdateAll();
+			void WaitAndUpdateAll(){ WaitAndUpdate(UPDATE_FLAG_ALL); }
+			void WaitAndUpdate(UINT updateFlag);
 
 			void SetAngle( LONG lAngleDegrees );
 			LONG GetAngle() const;

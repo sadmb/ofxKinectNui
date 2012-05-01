@@ -17,9 +17,6 @@ public:
 	virtual ofShortPixels& getDistancePixels() = 0;	///< disntance values (in mm) from depth camera 
 	virtual ofPixels& getLabelPixels() = 0;			///< rgba scaled value of players label
 	virtual ofPixels& getCalibratedVideoPixels() = 0;	///< rgb scaled value from video camera adjusted to depth images 
-	virtual ofTexture& getVideoTextureReference() = 0;
-	virtual ofTexture& getDepthTextureReference() = 0;
-	virtual ofTexture& getLabelTextureReference() = 0;
 	
 	// implemented
 	ofPixels& getPixelsRef(){return getVideoPixels();} ///< of007 compatible

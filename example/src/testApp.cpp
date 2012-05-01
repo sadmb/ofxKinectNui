@@ -11,13 +11,21 @@
  */
 /******************************************************************/
 #include "testApp.h"
+#include "ofxKinectNuiDraw.h"
 
 //--------------------------------------------------------------
 void testApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
-	kinect.init(true, true, true, true, true, true, true, true); // enable all captures
-//	kinect.init(true, true,false, true);
+	ofxKinectNui::InitSetting initSetting;
+	initSetting.grabVideo = true;
+	initSetting.grabDepth = true;
+	initSetting.grabAudio = true;
+	initSetting.grabLabel = true;
+	initSetting.grabSkeleton = true;
+	initSetting.grabCalibratedVideo = true;
+	initSetting.grabLabelCv = true;
+	kinect.init(initSetting);
 	kinect.open(false);
 //	kinect.open(true); // when you want to use near mode
 
@@ -46,6 +54,15 @@ void testApp::setup() {
 	ofSetFrameRate(60);
 	
 	calibratedTexture.allocate(320, 240, GL_RGB);
+
+	videoDraw_ = ofxKinectNuiDrawTexture::createTextureForVideo();
+	depthDraw_ = ofxKinectNuiDrawTexture::createTextureForDepth();
+	labelDraw_ = ofxKinectNuiDrawTexture::createTextureForLabel();
+	skeletonDraw_ = new ofxKinectNuiDrawSkeleton();
+	kinect.setVideoDrawer(videoDraw_);
+	kinect.setDepthDrawer(depthDraw_);
+	kinect.setLabelDrawer(labelDraw_);
+	kinect.setSkeletonDrawer(skeletonDraw_);
 }
 
 //--------------------------------------------------------------
@@ -64,12 +81,18 @@ void testApp::draw() {
 	ofBackground(100, 100, 100);
 	// Draw video only
 	if(bDrawVideo){
-		kinect.draw(0, 0, 1024, 768);	// draw video images from kinect camera
+		// draw video images from kinect camera
+		videoDraw_->setDrawArea(0, 0, 1024, 768);
+		kinect.drawVideo();
 	// Draw depth + users label only
 	}else if(bDrawDepthLabel){
 		ofEnableAlphaBlending();
-		kinect.drawDepth(0, 0, 1024, 768);	// draw depth images from kinect depth sensor
-		kinect.drawLabel(0, 0, 1024, 768);		// draw players' label images on video images
+		// draw depth images from kinect depth sensor
+		depthDraw_->setDrawArea(0, 0, 1024, 768);
+		kinect.drawDepth();
+		// draw players' label images on video images
+		labelDraw_->setDrawArea(0, 0, 1024, 768);
+		kinect.drawLabel();
 		ofDisableAlphaBlending();
 	// Draw skeleton only
 	}else if(bDrawSkeleton){
@@ -81,12 +104,19 @@ void testApp::draw() {
 		ofPopMatrix();
 	}else{
 		if(!bPlayback){
-			kinect.draw(20, 20, 400, 300);			// draw video images from kinect camera
+			// draw video images from kinect camera
+			videoDraw_->setDrawArea(20, 20, 400, 300);
+			kinect.drawVideo();
 			ofEnableAlphaBlending();
-			kinect.drawDepth(20, 340, 400, 300);	// draw depth images from kinect depth sensor
-			kinect.drawLabel(20, 340, 400, 300);		// draw players' label images on video images
+			// draw depth images from kinect depth sensor
+			depthDraw_->setDrawArea(20, 340, 400, 300);
+			kinect.drawDepth();
+			// draw players' label images on video images
+			labelDraw_->setDrawArea(20, 340, 400, 300);
+			kinect.drawLabel();
 			ofDisableAlphaBlending();
-			kinect.drawSkeleton(20, 20, 400, 300);	// draw skeleton images on video images
+			// draw skeleton images on video images
+			kinect.drawSkeleton(20, 20, 400, 300);
 
 #ifdef USE_TWO_KINECTS
 			kinect2.draw(440, 20, 400, 300);
@@ -177,6 +207,23 @@ void testApp::drawCalibratedTexture(){
 void testApp::exit() {
 	if(calibratedTexture.bAllocated()){
 		calibratedTexture.clear();
+	}
+
+	if(videoDraw_) {
+		videoDraw_->destroy();
+		videoDraw_ = NULL;
+	}
+	if(depthDraw_) {
+		depthDraw_->destroy();
+		depthDraw_ = NULL;
+	}
+	if(labelDraw_) {
+		labelDraw_->destroy();
+		labelDraw_ = NULL;
+	}
+	if(skeletonDraw_) {
+		delete skeletonDraw_;
+		skeletonDraw_ = NULL;
 	}
 
 	kinect.setAngle(0);
