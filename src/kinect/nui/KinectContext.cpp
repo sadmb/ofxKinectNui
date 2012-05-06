@@ -181,7 +181,10 @@ namespace kinect {
 			lock_.lock();
 			int size = (int)kinects_.size();
 			for(int i = 0; i < size; i++){
-				Shutdown(*kinects_[i]);
+				if(kinects_[i]->IsConnected()){
+					std::wcout << "Shutdown Kinect[" << kinects_[i]->index_ << "], Device Name:: " << kinects_[i]->uniqueId_ << "\n" << std::endl;
+					kinects_[i]->sensor_->NuiShutdown();
+				}
 			}
 			lock_.unlock();
 		}
