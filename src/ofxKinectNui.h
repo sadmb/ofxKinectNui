@@ -196,6 +196,20 @@ public:
 public:
 	const static int KINECT_PLAYERS_INDEX_NUM = 8;
 
+	static int getActiveCount(){
+		return kinect::nui::Kinect::GetActiveCount();
+	}
+	static int getAvailableCount(){
+		return kinect::nui::Kinect::GetAvailableCount();
+	}
+	static int getConnectedCount(){
+		return kinect::nui::Kinect::GetConnectedCount();
+	}
+
+	static int getNextAvailableIndex(){
+		return kinect::nui::Kinect::GetNextAvailableIndex();
+	}
+
 protected:
 	kinect::nui::Kinect kinect;	///< kinect instance
 
