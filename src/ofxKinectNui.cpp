@@ -26,7 +26,6 @@ ofxKinectNui::ofxKinectNui(){
 	bGrabsSkeleton = false;
 	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
-	labelPixelsCv = NULL;
 	updateFlagDefault_ = UPDATE_FLAG_NONE;
 
 	videoDraw_ = NULL;
@@ -57,9 +56,10 @@ ofxKinectNui::~ofxKinectNui(){
 	if(calibratedVideoPixels.isAllocated()){
 		calibratedVideoPixels.clear();
 	}
-	if(labelPixelsCv != NULL){
-		delete[] labelPixelsCv;
-		labelPixelsCv = NULL;
+	for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM; ++i) {
+		if(labelPixelsCv[i].isAllocated()) {
+			labelPixelsCv[i].clear();
+		}
 	}
 
 	removeKinectListener(this);
@@ -247,9 +247,6 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 			}
 
 			if(bGrabsLabelCv){
-				if(labelPixelsCv == NULL){
-					labelPixelsCv = new ofPixels[KINECT_PLAYERS_INDEX_NUM];
-				}
 				for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
 					if(!labelPixelsCv[i].isAllocated()){
 						labelPixelsCv[i].allocate(depthWidth, depthHeight, OF_PIXELS_MONO);
@@ -295,7 +292,7 @@ bool ofxKinectNui::open(bool nearmode /*= false */){
 		bIsNearmode = nearmode;
 		if(isInited()){
 			if(!kinect.IsInited()){
-				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsSkeleton, mVideoResolution, mDepthResolution);
+				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsAudio, bGrabsLabel, bGrabsSkeleton, bGrabsLabelCv, mVideoResolution, mDepthResolution);
 			}
 		}
 		if(bGrabsVideo){
@@ -507,14 +504,30 @@ void ofxKinectNui::unpluggedFunc(){
 }
 
 //---------------------------------------------------------------------------
+void ofxKinectNui::drawVideo(int x, int y, int width, int height)
+{
+	videoDraw_->setDrawArea(x,y,width,height);
+	drawVideo();
+}
+
 void ofxKinectNui::drawVideo(){
 	videoDraw_->draw();
 }
 //---------------------------------------------------------------------------
+void ofxKinectNui::drawDepth(int x, int y, int width, int height)
+{
+	depthDraw_->setDrawArea(x,y,width,height);
+	drawDepth();
+}
 void ofxKinectNui::drawDepth(){
 	depthDraw_->draw();
 }
 //---------------------------------------------------------------------------
+void ofxKinectNui::drawLabel(int x, int y, int width, int height)
+{
+	labelDraw_->setDrawArea(x,y,width,height);
+	drawLabel();
+}
 void ofxKinectNui::drawLabel(){
 	labelDraw_->draw();
 }

@@ -15,7 +15,7 @@ namespace kinect {
 		{
 			sensor_ = NULL;
 			Cleanup();
-			if(index = -1){
+			if(index == -1){
 				index = KinectContext::GetContext().GetNextAvailableIndex();
 			}
 			index_ = index;

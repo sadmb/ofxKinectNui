@@ -87,13 +87,13 @@ public:
 	bool init();
 	bool init(const InitSetting& setting);
 	
-	bool init(	bool grabVideo = true,
-				bool grabDepth = true,
-				bool grabAudio = false,
-				bool grabLabel = false,
-				bool grabSkeleton = false,
-				bool grabCalibratedVideo = false,
-				bool grabLabelCv = false,
+	bool init(	bool grabVideo,
+				bool grabDepth,
+				bool grabAudio,
+				bool grabLabel,
+				bool grabSkeleton,
+				bool grabCalibratedVideo,
+				bool grabLabelCv,
 				NUI_IMAGE_RESOLUTION videoResolution = NUI_IMAGE_RESOLUTION_640x480,
 				NUI_IMAGE_RESOLUTION depthResolution = NUI_IMAGE_RESOLUTION_320x240);
 
@@ -111,6 +111,10 @@ public:
 	void drawDepth();
 	void drawLabel();
 	void drawSkeleton();
+
+	void drawVideo(int x, int y, int width, int height);
+	void drawDepth(int x, int y, int width, int height);
+	void drawLabel(int x, int y, int width, int height);
 
 	void pluggedFunc();
 	void unpluggedFunc();
@@ -205,7 +209,7 @@ protected:
 	ofShortPixels distancePixels;	///<	distance pixels (raw depth pixels data from sensor)
 	ofPixels labelPixels;			///<	label pixels
 	ofPixels calibratedVideoPixels;	///<	video pixels adjusted to depth pixels
-	ofPixels* labelPixelsCv;		///<	separated label pixels for cv use, labelPixelsCv[0] contains whole players silhouette. labelPixelsCv[playerId] contains each players silhouette.
+	ofPixels labelPixelsCv[KINECT_PLAYERS_INDEX_NUM];		///<	separated label pixels for cv use, labelPixelsCv[0] contains whole players silhouette. labelPixelsCv[playerId] contains each players silhouette.
 	std::vector<BYTE> soundBuffer;	///<	audio buffer
 	float audioBeamAngle, audioAngle, audioAngleConfidence;	///< for audio
 

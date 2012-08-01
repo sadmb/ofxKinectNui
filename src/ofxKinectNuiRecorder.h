@@ -52,7 +52,7 @@ private:
 	FILE* f;
 	int width, height;
 	int depthWidth, depthHeight;
-	float* skeletons;
+	float skeletons[kinect::nui::SkeletonFrame::SKELETON_COUNT][kinect::nui::SkeletonData::POSITION_COUNT][3];
 
 	ofxKinectNui* mKinect;
 	NUI_IMAGE_RESOLUTION mVideoResolution;

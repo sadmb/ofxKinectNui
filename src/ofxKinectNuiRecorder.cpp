@@ -64,7 +64,7 @@ void ofxKinectNuiRecorder::setup(ofxKinectNui& kinect, const string & filename){
 
 	f = fopen(ofToDataPath(filename).c_str(),"wb");
 
-	skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
+//	skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
 
 	unsigned char bit = ((unsigned int)mKinect->grabsVideo() << 5) | ((unsigned int)mKinect->grabsDepth() << 4) |  ((unsigned int)mKinect->grabsCalibratedVideo() << 3) | ((unsigned int)mKinect->grabsLabel() << 2) | ((unsigned int)mKinect->grabsSkeleton() << 1) | ((unsigned int)mKinect->grabsAudio());
 	fwrite(&bit, sizeof(char), 1, f);
@@ -89,11 +89,6 @@ void ofxKinectNuiRecorder::close(){
 
 	fclose(f);
 	f = NULL;
-
-	if(skeletons != NULL){
-		delete[] skeletons;
-		skeletons = NULL;
-	}
 }
 
 //---------------------------------------------------------------------------
@@ -131,16 +126,18 @@ void ofxKinectNuiRecorder::update() {
 	const ofPoint* skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT];
 	int validCount = mKinect->getSkeletonPoints(skeletonPoints);
 
-	if(skeletonPoints != NULL){
+	if(mKinect->grabsSkeleton()){
 		for(int i = 0; i < validCount; i++){
 			for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
-				skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3] = skeletonPoints[i][j].x;
-				skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 1] = skeletonPoints[i][j].y;
-				skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 2] = skeletonPoints[i][j].z;
+				skeletons[i][kinect::nui::SkeletonData::POSITION_COUNT + j][0] = skeletonPoints[i][j].x;
+				skeletons[i][kinect::nui::SkeletonData::POSITION_COUNT + j][1] = skeletonPoints[i][j].y;
+				skeletons[i][kinect::nui::SkeletonData::POSITION_COUNT + j][2] = skeletonPoints[i][j].z;
 			}
 		}
 		fwrite(&validCount, sizeof(int), 1, f);
-		fwrite(skeletons, sizeof(float), validCount * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
+		if(validCount > 0) {
+			fwrite(skeletons, sizeof(float), validCount * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
+		}
 	}
 
 	if(mKinect->grabsAudio()){

@@ -164,12 +164,12 @@ namespace kinect {
 		*/
 		void KinectContext::Shutdown(Kinect& kinect)
 		{
+			lock_.lock();
 			if(IsConnected(kinect.index_)){
-				lock_.lock();
 				std::wcout << "Shutdown Kinect[" << kinect.index_ << "], Device Name:: " << kinect.uniqueId_ << "\n" << std::endl;
 				kinect.sensor_->NuiShutdown();
-				lock_.unlock();
 			}
+			lock_.unlock();
 		}
 
 		//----------------------------------------------------------

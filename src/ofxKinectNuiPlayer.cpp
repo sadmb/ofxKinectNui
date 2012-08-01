@@ -7,7 +7,6 @@
 ofxKinectNuiPlayer::ofxKinectNuiPlayer(){
 	f = NULL;
 	filename = "";
-	skeletons = NULL;
 	soundBuffer.clear();
 	fps = 30;
 
@@ -54,10 +53,6 @@ ofxKinectNuiPlayer::~ofxKinectNuiPlayer() {
 		calibratedVideoPixels.clear();
 	}
 
-	if(skeletons != NULL){
-		delete[] skeletons;
-		skeletons = NULL;
-	}
 	if(!soundBuffer.empty()){
 		soundBuffer.clear();
 	}
@@ -181,11 +176,8 @@ void ofxKinectNuiPlayer::setup(	const string & file, bool useTexture /*= true*/)
 	}
 
 	if(bSkeleton){
-		if(skeletons == NULL){
-			skeletons = new float[kinect::nui::SkeletonFrame::SKELETON_COUNT * kinect::nui::SkeletonData::POSITION_COUNT * 3];
-		}
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
-			skeletonPoints[i][0] = -1;
+			skeletonPoints[i][0].z = -1;
 		}
 	}
 
@@ -277,10 +269,10 @@ void ofxKinectNuiPlayer::update(){
 		if(validCount > 0) {
 			fread(skeletons, sizeof(float), validCount * kinect::nui::SkeletonData::POSITION_COUNT * 3, f);
 			for(int i = 0; i < validCount; ++i) {
-				for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; j++){
-					skeletonPoints[i][j].x = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3];
-					skeletonPoints[i][j].y = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 1];
-					skeletonPoints[i][j].z = skeletons[(i * kinect::nui::SkeletonData::POSITION_COUNT + j) * 3 + 2];
+				for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
+					skeletonPoints[i][j].x = skeletons[i][kinect::nui::SkeletonData::POSITION_COUNT + j][0];
+					skeletonPoints[i][j].y = skeletons[i][kinect::nui::SkeletonData::POSITION_COUNT + j][1];
+					skeletonPoints[i][j].z = skeletons[i][kinect::nui::SkeletonData::POSITION_COUNT + j][2];
 				}
 			}
 		}
