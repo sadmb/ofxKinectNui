@@ -55,8 +55,7 @@ void testApp::update() {
 void testApp::draw() {
 	ofBackground(100, 100, 100);
 	if(!bPlayback){
-		videoDraw_->setDrawArea(20, 20, 400, 300);
-		kinect.drawVideo();			// draw video images from kinect camera
+		kinect.drawVideo(20, 20, 400, 300);			// draw video images from kinect camera
 	}
 
 	ofPushMatrix();

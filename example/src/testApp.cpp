@@ -82,17 +82,14 @@ void testApp::draw() {
 	// Draw video only
 	if(bDrawVideo){
 		// draw video images from kinect camera
-		videoDraw_->setDrawArea(0, 0, 1024, 768);
-		kinect.drawVideo();
+		kinect.drawVideo(0, 0, 1024, 768);
 	// Draw depth + users label only
 	}else if(bDrawDepthLabel){
 		ofEnableAlphaBlending();
 		// draw depth images from kinect depth sensor
-		depthDraw_->setDrawArea(0, 0, 1024, 768);
-		kinect.drawDepth();
+		kinect.drawDepth(0, 0, 1024, 768);
 		// draw players' label images on video images
-		labelDraw_->setDrawArea(0, 0, 1024, 768);
-		kinect.drawLabel();
+		kinect.drawLabel(0, 0, 1024, 768);
 		ofDisableAlphaBlending();
 	// Draw skeleton only
 	}else if(bDrawSkeleton){
@@ -105,15 +102,12 @@ void testApp::draw() {
 	}else{
 		if(!bPlayback){
 			// draw video images from kinect camera
-			videoDraw_->setDrawArea(20, 20, 400, 300);
-			kinect.drawVideo();
+			kinect.drawVideo(20, 20, 400, 300);
 			ofEnableAlphaBlending();
 			// draw depth images from kinect depth sensor
-			depthDraw_->setDrawArea(20, 340, 400, 300);
-			kinect.drawDepth();
+			kinect.drawDepth(20, 340, 400, 300);
 			// draw players' label images on video images
-			labelDraw_->setDrawArea(20, 340, 400, 300);
-			kinect.drawLabel();
+			kinect.drawLabel(20, 340, 400, 300);
 			ofDisableAlphaBlending();
 			// draw skeleton images on video images
 			kinect.drawSkeleton(20, 20, 400, 300);
