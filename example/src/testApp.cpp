@@ -25,9 +25,11 @@ void testApp::setup() {
 	initSetting.grabSkeleton = true;
 	initSetting.grabCalibratedVideo = true;
 	initSetting.grabLabelCv = true;
+	initSetting.videoResolution = NUI_IMAGE_RESOLUTION::NUI_IMAGE_RESOLUTION_640x480;
+	initSetting.depthResolution = NUI_IMAGE_RESOLUTION::NUI_IMAGE_RESOLUTION_320x240;
 	kinect.init(initSetting);
-	kinect.open(false);
-//	kinect.open(true); // when you want to use near mode
+	kinect.open();
+//	kinect.open(true); // when you want to use near mode (default is false)
 
 	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
 	
@@ -53,7 +55,7 @@ void testApp::setup() {
 
 	ofSetFrameRate(60);
 	
-	calibratedTexture.allocate(320, 240, GL_RGB);
+	calibratedTexture.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight(), GL_RGB);
 
 	videoDraw_ = ofxKinectNuiDrawTexture::createTextureForVideo();
 	depthDraw_ = ofxKinectNuiDrawTexture::createTextureForDepth();
@@ -86,6 +88,7 @@ void testApp::draw() {
 	// Draw depth + users label only
 	}else if(bDrawDepthLabel){
 		ofEnableAlphaBlending();
+
 		// draw depth images from kinect depth sensor
 		kinect.drawDepth(0, 0, 1024, 768);
 		// draw players' label images on video images
@@ -172,8 +175,8 @@ void testApp::drawCalibratedTexture(){
 	int offsetY = -300;
 	glTranslatef(512, 386, 0);
 	calibratedTexture.loadData(kinect.getCalibratedVideoPixels());
-	for(int y = 0; y < 240; y++){
-		for(int x = 0; x < 320; x++){
+	for(int y = 0; y < kinect.getDepthResolutionHeight(); y++){
+		for(int x = 0; x < kinect.getDepthResolutionWidth(); x++){
 			float distance = kinect.getDistanceAt(x, y);
 			if(distance > 500 && distance < 1500){
 				glPushMatrix();

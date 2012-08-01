@@ -229,7 +229,7 @@ namespace kinect {
 			lDepthY = (LONG)(lDepthPixel / DepthStream().Width());
 			LONG plColorX = 0, plColorY = 0;
 
-			HRESULT ret = sensor_->NuiImageGetColorPixelCoordinatesFromDepthPixel(VideoStream().Resolution(), NULL, lDepthX, lDepthY, usDepthValue, &plColorX, &plColorY);
+			HRESULT ret = sensor_->NuiImageGetColorPixelCoordinatesFromDepthPixelAtResolution(VideoStream().Resolution(), DepthStream().Resolution(), NULL, lDepthX, lDepthY, usDepthValue, &plColorX, &plColorY);
 			if(FAILED(ret)) {
 				return -1;
 			}

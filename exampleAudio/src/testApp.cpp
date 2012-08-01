@@ -99,9 +99,10 @@ void testApp::exit() {
 		videoDraw_->destroy();
 		videoDraw_ = NULL;
 	}
+	stopPlayback();
 	kinect.setAngle(0);
 	kinect.close();
-	kinect.removeKinectListener(this);
+	kinectSoundRecorder.close();
 }
 
 //--------------------------------------------------------------

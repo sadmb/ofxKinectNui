@@ -81,6 +81,7 @@ class testApp : public ofBaseApp {
 		
 		int mRotationX, mRotationY;
 
+		// Please declare these texture pointer and initialize when you want to draw them
 		ofxKinectNuiDrawTexture*	videoDraw_;
 		ofxKinectNuiDrawTexture*	depthDraw_;
 		ofxKinectNuiDrawTexture*	labelDraw_;

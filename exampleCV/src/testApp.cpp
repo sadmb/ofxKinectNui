@@ -32,14 +32,14 @@ void testApp::setup() {
 
 	angle = kinect.getCurrentAngle();
 	
-	depthImage.allocate(320, 240);
-	thresholdedImage.allocate(320, 240);
+	depthImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+	thresholdedImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
 	threshold = 20;
 	
-	colorImage.allocate(320, 240, OF_IMAGE_COLOR_ALPHA);
+	colorImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight(), OF_IMAGE_COLOR_ALPHA);
 	labelImages = new ofxCvGrayscaleImage[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM];
 	for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM; i++){
-		labelImages[i].allocate(320, 240);
+		labelImages[i].allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
 	}
 	contourFinders = new ofxCvContourFinder[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM - 1]; /// we get 7 players in maximum.
 	
@@ -59,17 +59,17 @@ void testApp::update() {
 		depthImage.setFromPixels(kinect.getDepthPixels());
 		thresholdedImage = depthImage;
 		thresholdedImage.threshold(threshold);
-		contourFinderDepth.findContours(thresholdedImage, 20, (320*240)/3, 10, true);
+		contourFinderDepth.findContours(thresholdedImage, 20, (kinect.getDepthResolutionWidth() * kinect.getDepthResolutionHeight())/3, 10, true);
 
 		////// You can skip copying to thresholdedImage if you don't need depth draw
 		// depthImage.threshold(threshold);
-		// contourFinderDepth.findContours(depthImage, 20, (320*240)/3, 10, true);
+		// contourFinderDepth.findContours(depthImage, 20, (kinect.getDepthResolutionWidth() * kinect.getDepthResolutionHeight())/3, 10, true);
 		
 		colorImage.setFromPixels(kinect.getLabelPixels());
 		for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM; i++){
 			labelImages[i].setFromPixels(kinect.getLabelPixelsCv(i));
 			if(i > 0){
-				contourFinders[i - 1].findContours(labelImages[i], 20, (320*240)/3, 10, true);
+				contourFinders[i - 1].findContours(labelImages[i], 20, (kinect.getDepthResolutionWidth() * kinect.getDepthResolutionHeight())/3, 10, true);
 			}
 		}
 	}
@@ -83,9 +83,9 @@ void testApp::draw() {
 
 	ofSetColor(0);
 	ofFill();
-	ofRect(700, 20, 320, 240);
-	ofRect(700, 280, 320, 240);
-	ofRect(20, 280, 320, 240);
+	ofRect(700, 20, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+	ofRect(700, 280, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+	ofRect(20, 280, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
 	ofSetColor(255);
 
 	ofEnableAlphaBlending();
