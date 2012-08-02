@@ -221,7 +221,7 @@ namespace kinect {
 		LONG Kinect::GetColorPixelCoordinatesFromDepthPixel(LONG lDepthPixel, USHORT usDepthValue)
 		{
 			LONG lDepthX, lDepthY;
-			if(lDepthPixel == 0){
+			if(lDepthPixel == 0 || DepthStream().Width() == 0){
 				return -1;
 			}
 
