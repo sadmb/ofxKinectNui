@@ -271,6 +271,7 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
 			// z==-1 is a condition of not tracked.
 			skeletonPoints[i][0].z = -1;
+			rawSkeletonPoints[i][0].z = -1;
 		}
 	}
 
@@ -462,10 +463,12 @@ void ofxKinectNui::update(UINT flag){
 					for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
 						kinect::nui::SkeletonData::SkeletonPoint p = skeleton[i].TransformSkeletonToDepthImage(j);
 						skeletonPoints[i][j] = ofPoint(p.x, p.y, p.depth);
+						rawSkeletonPoints[i][j] = ofPoint(skeleton[i][j].x, skeleton[i][j].y, skeleton[i][j].z);            
 					}
 				}else{
 					// if skeleton is not tracked, set top z data negative.
 					skeletonPoints[i][0].z = -1;
+					rawSkeletonPoints[i][0].z = -1;
 					continue;
 				}
 			}
@@ -474,6 +477,7 @@ void ofxKinectNui::update(UINT flag){
 			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
 				// if skeleton is not tracked, set top z data negative.
 				skeletonPoints[i][0].z = -1;
+				rawSkeletonPoints[i][0].z = -1;
 			}
 		}
 	}
@@ -722,6 +726,24 @@ int ofxKinectNui::getSkeletonPoints(const ofPoint* ret[]){
 	for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
 		if(skeletonPoints[i][0].z >= 0) {
 			ret[valid++] = skeletonPoints[i];
+		}
+	}
+	return valid;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	skeleton point data in xyz coordinate system (in meters)
+	@return	map data of playerId and its skeleton points in xyz coordinate system (in meters)
+*/
+int ofxKinectNui::getRawSkeletonPoints(const ofPoint* ret[]){
+	if(!bGrabsSkeleton){
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: getRawSkeletonPoints - skeleton is not grabbed.");
+	}
+	int valid = 0;
+	for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
+		if(rawSkeletonPoints[i][0].z >= 0) {
+			ret[valid++] = rawSkeletonPoints[i];
 		}
 	}
 	return valid;
