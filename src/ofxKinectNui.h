@@ -139,6 +139,7 @@ public:
 	std::vector<BYTE> getSoundBuffer();
 	
 	int getSkeletonPoints(const ofPoint* ret[]);
+	int getRawSkeletonPoints(const ofPoint* ret[]);
 	
 	ofColor getColorAt(int x, int y);
 	ofColor getColorAt(const ofPoint& point);
@@ -228,6 +229,7 @@ protected:
 	float audioBeamAngle, audioAngle, audioAngleConfidence;	///< for audio
 
 	ofPoint skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT][kinect::nui::SkeletonData::POSITION_COUNT];	///< joint points of all skeletons
+	ofPoint rawSkeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT][kinect::nui::SkeletonData::POSITION_COUNT];	///< joint points of all skeletons
 
 	int targetAngle;	///< target angle of kinect tilt
 	
