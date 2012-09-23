@@ -95,16 +95,14 @@ protected:
 	 * @param	depthX	x position
 	 * @param	depthY	y position
 	 * @param	depthZ	distance at (x, y)
+	 * @return	ofPoint
 	 */
-	ofVec3f getWorldCoordinateFor(int depthX, int depthY, double depthZ){
-		//Based on http://graphics.stanford.edu/~mdfisher/Kinect.html
-	
-		ofVec3f result;
-		result.x = float((depthX - (float)3.3930780975300314e+02) * depthZ * (double)(1.0 / 5.9421434211923247e+02));
-		result.y = float((depthY - (float)2.4273913761751615e+02) * depthZ * (double)(1.0 / 5.9104053696870778e+02));
-		result.z = depthZ;
-	
-		return result;
+	ofPoint getWorldCoordinateFor(int depthX, int depthY, double depthZ){
+		ofPoint pt3d;
+		pt3d.x = (depthX - depthWidth/2.0f) * (float)(320.0f/depthWidth) * depthZ * NUI_CAMERA_DEPTH_IMAGE_TO_SKELETON_MULTIPLIER_320x240;
+		pt3d.y = (depthY - depthHeight/2.0f) * (float)(240.0f/depthHeight) * depthZ * NUI_CAMERA_DEPTH_IMAGE_TO_SKELETON_MULTIPLIER_320x240;
+		pt3d.z = depthZ;
+		return pt3d;
 	}
 
 	/**
@@ -133,6 +131,10 @@ protected:
 		}
 	}
 
+	int width;		///<	width of video stream
+	int height;		///<	height of depth stream
+	int depthWidth;		///<	width of depth stream
+	int depthHeight;	///<	height of depth stream
 
 	bool bCalculatesLookups;		///< calculates lookups?
 	bool bIsDepthNearValueWhite;	///< is near value of depth white?

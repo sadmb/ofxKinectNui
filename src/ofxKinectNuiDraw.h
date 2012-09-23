@@ -25,9 +25,9 @@
 //////////////////////////////////////////////////////
 class ofxKinectNuiDrawTexture : public IDrawPixels {
 public:
-	static ofxKinectNuiDrawTexture* createTextureForVideo(NUI_IMAGE_RESOLUTION resolution = NUI_IMAGE_RESOLUTION_640x480);
-	static ofxKinectNuiDrawTexture* createTextureForDepth(NUI_IMAGE_RESOLUTION resolution = NUI_IMAGE_RESOLUTION_320x240);
-	static ofxKinectNuiDrawTexture* createTextureForLabel(NUI_IMAGE_RESOLUTION resolution = NUI_IMAGE_RESOLUTION_320x240);
+	static ofxKinectNuiDrawTexture* createTextureForVideo(NUI_IMAGE_RESOLUTION resolution);
+	static ofxKinectNuiDrawTexture* createTextureForDepth(NUI_IMAGE_RESOLUTION resolution);
+	static ofxKinectNuiDrawTexture* createTextureForLabel(NUI_IMAGE_RESOLUTION resolution);
 	virtual void destroy();
 	virtual void setSource(ofPixels& src);
 

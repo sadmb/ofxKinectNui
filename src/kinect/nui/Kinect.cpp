@@ -238,6 +238,11 @@ namespace kinect {
 			return plColorPixel;
 		}
 
+		USHORT Kinect::GetPlayerIndexAt(UINT depthX, UINT depthY)
+		{
+			return NuiDepthPixelToPlayerIndex((USHORT)(depthY * DepthStream().Width() + depthX));
+		}
+
 		//----------------------------------------------------------
 		/**
 			@brief	Connect the kinect

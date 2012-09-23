@@ -25,8 +25,8 @@ void testApp::setup() {
 	initSetting.grabSkeleton = true;
 	initSetting.grabCalibratedVideo = true;
 	initSetting.grabLabelCv = true;
-	initSetting.videoResolution = NUI_IMAGE_RESOLUTION::NUI_IMAGE_RESOLUTION_640x480;
-	initSetting.depthResolution = NUI_IMAGE_RESOLUTION::NUI_IMAGE_RESOLUTION_320x240;
+	initSetting.videoResolution = NUI_IMAGE_RESOLUTION_640x480;
+	initSetting.depthResolution = NUI_IMAGE_RESOLUTION_320x240;
 	kinect.init(initSetting);
 	kinect.open();
 //	kinect.open(true); // when you want to use near mode (default is false)
@@ -57,9 +57,9 @@ void testApp::setup() {
 	
 	calibratedTexture.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight(), GL_RGB);
 
-	videoDraw_ = ofxKinectNuiDrawTexture::createTextureForVideo();
-	depthDraw_ = ofxKinectNuiDrawTexture::createTextureForDepth();
-	labelDraw_ = ofxKinectNuiDrawTexture::createTextureForLabel();
+	videoDraw_ = ofxKinectNuiDrawTexture::createTextureForVideo(kinect.getVideoResolution());
+	depthDraw_ = ofxKinectNuiDrawTexture::createTextureForDepth(kinect.getDepthResolution());
+	labelDraw_ = ofxKinectNuiDrawTexture::createTextureForLabel(kinect.getDepthResolution());
 	skeletonDraw_ = new ofxKinectNuiDrawSkeleton();
 	kinect.setVideoDrawer(videoDraw_);
 	kinect.setDepthDrawer(depthDraw_);

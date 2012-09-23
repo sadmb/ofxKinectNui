@@ -26,6 +26,8 @@ ofxKinectNui::ofxKinectNui(){
 	bGrabsSkeleton = false;
 	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
+
+	bIsFoundSkeleton = false;
 	updateFlagDefault_ = UPDATE_FLAG_NONE;
 
 	videoDraw_ = NULL;
@@ -73,6 +75,7 @@ ofxKinectNui::~ofxKinectNui(){
 	bGrabsSkeleton = false;
 	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
+	bIsFoundSkeleton = false;
 }
 
 //---------------------------------------------------------------------------
@@ -457,11 +460,12 @@ void ofxKinectNui::update(UINT flag){
 		// Get the skeleton data of next frame
 		kinect::nui::SkeletonFrame skeleton = kinect.Skeleton().GetNextFrame();
 		if(skeleton.IsFoundSkeleton()){
+			bIsFoundSkeleton = true;
 			skeleton.TransformSmooth();
 			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
 				if( skeleton[i].TrackingState() == NUI_SKELETON_TRACKED){
 					for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
-						kinect::nui::SkeletonData::SkeletonPoint p = skeleton[i].TransformSkeletonToDepthImage(j);
+						kinect::nui::SkeletonData::SkeletonPoint p = skeleton[i].TransformSkeletonToDepthImage(j, mDepthResolution);
 						skeletonPoints[i][j] = ofPoint(p.x, p.y, p.depth);
 						rawSkeletonPoints[i][j] = ofPoint(skeleton[i][j].x, skeleton[i][j].y, skeleton[i][j].z);            
 					}
@@ -474,12 +478,15 @@ void ofxKinectNui::update(UINT flag){
 			}
 		}
 		else {
+			bIsFoundSkeleton = false;
 			for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i){
 				// if skeleton is not tracked, set top z data negative.
 				skeletonPoints[i][0].z = -1;
 				rawSkeletonPoints[i][0].z = -1;
 			}
 		}
+	}else{
+		bIsFoundSkeleton = false;
 	}
 
 	if(flag & UPDATE_FLAG_GROUP_AUDIO){
@@ -553,7 +560,7 @@ void ofxKinectNui::drawSkeleton(){
 */
 void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
 	ofPushMatrix();
-	ofScale(1/(float)depthWidth * w, 1/(float)depthHeight * h);
+	ofScale(1.0f/(float)depthWidth * w, 1.0f/(float)depthHeight * h);
 	ofTranslate(x, y);
 	drawSkeleton();
 	ofPopMatrix();
@@ -716,16 +723,17 @@ std::vector<BYTE> ofxKinectNui::getSoundBuffer(){
 //---------------------------------------------------------------------------
 /**
 	@brief	skeleton point data
-	@return	map data of playerId and its skeleton points
+	@return	valid skeleton count
 */
-int ofxKinectNui::getSkeletonPoints(const ofPoint* ret[]){
+int ofxKinectNui::getSkeletonPoints(ofPoint* ret[]){
 	if(!bGrabsSkeleton){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getSkeletonPoints - skeleton is not grabbed.");
 	}
 	int valid = 0;
 	for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
 		if(skeletonPoints[i][0].z >= 0) {
-			ret[valid++] = skeletonPoints[i];
+			ret[i] = skeletonPoints[i];
+			valid++;
 		}
 	}
 	return valid;
@@ -736,15 +744,16 @@ int ofxKinectNui::getSkeletonPoints(const ofPoint* ret[]){
 	@brief	skeleton point data in xyz coordinate system (in meters)
 	@return	map data of playerId and its skeleton points in xyz coordinate system (in meters)
 */
-int ofxKinectNui::getRawSkeletonPoints(const ofPoint* ret[]){
+int ofxKinectNui::getRawSkeletonPoints(ofPoint* ret[]){
 	if(!bGrabsSkeleton){
 		ofLog(OF_LOG_WARNING, "ofxKinectNui: getRawSkeletonPoints - skeleton is not grabbed.");
 	}
 	int valid = 0;
 	for(int i = 0; i < kinect::nui::SkeletonFrame::SKELETON_COUNT; ++i) {
 		if(rawSkeletonPoints[i][0].z >= 0) {
-			ret[valid++] = rawSkeletonPoints[i];
+			valid++;
 		}
+		ret[i] = rawSkeletonPoints[i];
 	}
 	return valid;
 }
@@ -834,8 +843,8 @@ ofColor ofxKinectNui::getCalibratedColorAt(const ofPoint & depthPoint){
 	@param	depthY	y position on depth sensor
 	@return	ofVec3f	real world scale
 */
-ofVec3f ofxKinectNui::getWorldCoordinateFor(int depthX, int depthY){
-	const double depthZ = distancePixels[depthWidth * depthX + depthY]/1000.0;
+ofPoint ofxKinectNui::getWorldCoordinateFor(int depthX, int depthY){
+	const double depthZ = distancePixels[depthWidth * depthY + depthX]/1000.0;
 	return ofxBase3DVideo::getWorldCoordinateFor(depthX, depthY, depthZ);
 }
 
@@ -868,12 +877,30 @@ unsigned short ofxKinectNui::getDistanceAt(const ofPoint& depthPoint){
 	@return	player index	0 when no player
 */
 int ofxKinectNui::getPlayerIndexAt(int x, int y) {
-	for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
-		if(labelPixels[depthWidth * y + x] & color[i]){
-			return i;
-		}
+	if(!kinect.IsInited() || !kinect.IsConnected() || !isOpened()){
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: Kinect stream is not opened");
+		return -1;
 	}
-	return 0;
+	if(!bGrabsDepth || !bGrabsLabel){
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: Please enable depth and label capture");
+		return -1;
+	}
+	if(y >= depthHeight || x >= depthWidth){
+		ofLog(OF_LOG_WARNING, "ofxKinectNui: getPlayerIndexAt out of range.");
+		return -1;
+	}
+	int depthIndex = (depthWidth * y + x) * 4;
+	UINT pix = (labelPixels[depthIndex + 3] << 24) | (labelPixels[depthIndex + 2] << 16) | (labelPixels[depthIndex + 1] << 8) | (labelPixels[depthIndex]);
+	if(pix != color[0]){
+		for(int i = 1; i < KINECT_PLAYERS_INDEX_NUM; i++){
+			if(pix == color[i]){
+				return i;
+			}
+		}
+	}else{
+		return 0;
+	}
+	return -1;
 }
 
 //---------------------------------------------------------------------------
@@ -960,6 +987,33 @@ bool ofxKinectNui::isOpened(){
 bool ofxKinectNui::isNearmode(){
 	return bIsNearmode;
 }
+
+//---------------------------------------------------------------------------
+/**
+	@brief	is found skeleton
+	@return	true when skeleton is found
+*/
+bool ofxKinectNui::isFoundSkeleton(){
+	return bIsFoundSkeleton;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	whether the target skeleton is tracked
+	@return	true when the skeleton is tracked
+*/
+bool ofxKinectNui::isTrackedSkeleton(int id){
+	if(bGrabsSkeleton){
+		if(skeletonPoints[id][0].z < 0){
+			return false;
+		}else{
+			return true;
+		}
+	}else{
+		return false;
+	}
+}
+
 
 //---------------------------------------------------------------------------
 /**

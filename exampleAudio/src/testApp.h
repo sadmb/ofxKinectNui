@@ -35,12 +35,15 @@ class testApp : public ofBaseApp {
 		void windowResized(int w, int h);
 		void kinectPlugged();
 		void kinectUnplugged();
+
+		void audioIn(float* input, int vbufferSize, int nChannels);
 		
 		void startRecording();
 		void stopRecording();
 		void startPlayback();
 		void stopPlayback();
 
+	private:
 		ofxKinectNui kinect;
 		ofxKinectNuiSoundRecorder kinectSoundRecorder;
 		ofSoundPlayer player;
@@ -52,7 +55,18 @@ class testApp : public ofBaseApp {
 		bool bUnplugged;
 		
 		int angle;
-	private:
-		ofxKinectNuiDrawTexture* videoDraw_;
+
+		vector<float> left;
+		vector<float> right;
+		vector<float> volHistory;
+
+		float smoothedVol;
+		float scaledVol;
+
+		float beamAngle;
+		float sourceAngle;
+		float sourceConfidence;
+
+		ofSoundStream soundStream;
 
 };

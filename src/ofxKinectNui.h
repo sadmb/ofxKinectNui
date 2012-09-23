@@ -84,6 +84,9 @@ public:
 		UPDATE_FLAG_ALL				= 0xFFFFFFFF,
 	};
 
+	static const int SKELETON_COUNT = NUI_SKELETON_COUNT;
+	static const int SKELETON_POSITION_COUNT = NUI_SKELETON_POSITION_COUNT;
+
 	bool init();
 	bool init(const InitSetting& setting);
 	
@@ -138,16 +141,16 @@ public:
 	ofShortPixels& getDistancePixels();
 	std::vector<BYTE> getSoundBuffer();
 	
-	int getSkeletonPoints(const ofPoint* ret[]);
-	int getRawSkeletonPoints(const ofPoint* ret[]);
-	
+	int getSkeletonPoints(ofPoint* ret[]);
+	int getRawSkeletonPoints(ofPoint* ret[]);
+
 	ofColor getColorAt(int x, int y);
 	ofColor getColorAt(const ofPoint& point);
 
 	ofColor getCalibratedColorAt(int depthX, int depthY);
 	ofColor getCalibratedColorAt(const ofPoint& depthPoint);
 
-	ofVec3f getWorldCoordinateFor(int depthX, int depthY);
+	ofPoint getWorldCoordinateFor(int depthX, int depthY);
 
 	unsigned short getDistanceAt(int depthX, int depthY);
 	unsigned short getDistanceAt(const ofPoint& depthPoint);
@@ -164,6 +167,8 @@ public:
 	bool isConnected();
 	bool isOpened();
 	bool isNearmode();
+	bool isFoundSkeleton();
+	bool isTrackedSkeleton(int id);
 
 	bool grabsVideo();
 	bool grabsDepth();
@@ -214,11 +219,6 @@ public:
 protected:
 	kinect::nui::Kinect kinect;	///< kinect instance
 
-	int width;		///<	width of video stream
-	int height;		///<	height of depth stream
-	int depthWidth;		///<	width of depth stream
-	int depthHeight;	///<	height of depth stream
-
 	ofPixels videoPixels;			///<	video pixels
 	ofPixels depthPixels;			///<	depth pixels
 	ofShortPixels distancePixels;	///<	distance pixels (raw depth pixels data from sensor)
@@ -228,8 +228,8 @@ protected:
 	std::vector<BYTE> soundBuffer;	///<	audio buffer
 	float audioBeamAngle, audioAngle, audioAngleConfidence;	///< for audio
 
-	ofPoint skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT][kinect::nui::SkeletonData::POSITION_COUNT];	///< joint points of all skeletons
-	ofPoint rawSkeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT][kinect::nui::SkeletonData::POSITION_COUNT];	///< joint points of all skeletons
+	ofPoint skeletonPoints[SKELETON_COUNT][SKELETON_POSITION_COUNT];	///< joint points of all skeletons
+	ofPoint rawSkeletonPoints[SKELETON_COUNT][SKELETON_POSITION_COUNT];	///< joint points of all skeletons
 
 	int targetAngle;	///< target angle of kinect tilt
 	
@@ -244,6 +244,7 @@ protected:
 	bool bGrabsCalibratedVideo;		///< grabs calibrated video?
 	bool bGrabsLabelCv;				///< grabs separated label for cv?
 	bool bIsFrameNew;				///< frame updated?
+	bool bIsFoundSkeleton;
 
 	NUI_IMAGE_RESOLUTION mVideoResolution;	///< video resolution flag
 	NUI_IMAGE_RESOLUTION mDepthResolution;	///< depth resolution flag

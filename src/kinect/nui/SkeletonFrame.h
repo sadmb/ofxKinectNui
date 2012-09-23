@@ -67,10 +67,10 @@ namespace kinect {
 			/**
 				@brief transform skeleton data to Point struct
 			*/
-			SkeletonPoint TransformSkeletonToDepthImage( int index )
+			SkeletonPoint TransformSkeletonToDepthImage( int index, NUI_IMAGE_RESOLUTION depthResolution )
 			{
 				SkeletonPoint p;
-				NuiTransformSkeletonToDepthImage( skeletonData_.SkeletonPositions[index], &p.x, &p.y, &p.depth );
+				NuiTransformSkeletonToDepthImage( skeletonData_.SkeletonPositions[index], &p.x, &p.y, &p.depth, depthResolution );
 				return p;
 			}
 

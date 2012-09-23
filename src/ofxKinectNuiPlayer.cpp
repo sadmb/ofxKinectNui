@@ -804,7 +804,7 @@ float ofxKinectNuiPlayer::getDistanceAt(ofPoint p) {
 	@return	World vector
 */
 ofVec3f ofxKinectNuiPlayer::getWorldCoordinateFor(int depthX, int depthY) {
-	const double depthZ = distancePixels[depthWidth * depthX + depthY]/1000.0;
+	const double depthZ = distancePixels[depthWidth * depthY + depthX]/1000.0;
 	return ofxBase3DVideo::getWorldCoordinateFor(depthX, depthY, depthZ);
 }
 

@@ -123,7 +123,7 @@ void ofxKinectNuiRecorder::update() {
 		fwrite(labelPixels, sizeof(char), depthWidth * depthHeight * 4, f);
 	}
 
-	const ofPoint* skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT];
+	ofPoint* skeletonPoints[kinect::nui::SkeletonFrame::SKELETON_COUNT];
 	int validCount = mKinect->getSkeletonPoints(skeletonPoints);
 
 	if(mKinect->grabsSkeleton()){
