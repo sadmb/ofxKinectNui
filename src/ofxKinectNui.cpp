@@ -1,6 +1,9 @@
 #include "ofxKinectNui.h"
 #include "ofxKinectNuiDraw.h"
 
+#define VIDEO_BPP_RGB			3
+#define VIDEO_BPP_INFRARED		1
+
 const UINT color[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM] = {
 	0x00FFFFFF,	/// no user
 	0xFF0000FF,
@@ -29,6 +32,8 @@ ofxKinectNui::ofxKinectNui(){
 
 	bIsFoundSkeleton = false;
 	updateFlagDefault_ = UPDATE_FLAG_NONE;
+
+	mVideoBpp = VIDEO_BPP_RGB;
 
 	videoDraw_ = NULL;
 	depthDraw_ = NULL;
@@ -217,10 +222,16 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 
 	DWORD dwFlags = 0x00000000;
 	updateFlagDefault_ = UPDATE_FLAG_NONE;
+	if (mVideoImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
+		mVideoBpp = VIDEO_BPP_INFRARED;
+
 	if(bGrabsVideo){
 		int length = width * height;
 		if(!videoPixels.isAllocated()){
-			videoPixels.allocate(width, height, OF_PIXELS_RGB);
+			ofPixelFormat format = OF_PIXELS_RGB;
+			if (mVideoImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
+				format = OF_PIXELS_MONO;
+			videoPixels.allocate(width, height, format);
 		}
 		updateFlagDefault_ |= UPDATE_FLAG_VIDEO;
 
@@ -239,7 +250,10 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 
 		if(bGrabsCalibratedVideo){
 			if(!calibratedVideoPixels.isAllocated()){
-				calibratedVideoPixels.allocate(depthWidth, depthHeight, OF_PIXELS_RGB);
+				ofPixelFormat format = OF_PIXELS_RGB;
+				if (mVideoImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
+					format = OF_PIXELS_MONO;
+				calibratedVideoPixels.allocate(depthWidth, depthHeight, format);
 			}
 			updateFlagDefault_ |= UPDATE_FLAG_CALIBRATED_VIDEO;
 		}
@@ -392,7 +406,7 @@ void ofxKinectNui::update(UINT flag){
 				// windows native color set: ABGR to RGBA
 				videobit = video(x, y) & 0x00FFFFFF;
 				videobit = (videobit & 0x00FF0000) >> 16 | (videobit & 0x0000FF00) | (videobit & 0x000000FF) << 16; 
-				memcpy(videoPixels.getPixels() + (offset + x) * 3, &videobit, sizeof(char) * 3);
+				memcpy(videoPixels.getPixels() + (offset + x) * mVideoBpp, &videobit, sizeof(char) * mVideoBpp);
 			}
 		}
 		if(videoDraw_ && (flag & UPDATE_FLAG_VIDEO)) {
@@ -439,15 +453,15 @@ void ofxKinectNui::update(UINT flag){
 					}
 				}
 				if(flag & UPDATE_FLAG_CALIBRATED_VIDEO) {
-					long vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depthIndex, 0) * 3;
-					for(int i = 0; i < 3; ++i){
+					long vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depthIndex, 0) * mVideoBpp;
+					for(int i = 0; i < mVideoBpp; ++i){
 						unsigned char vbit;
-						if(vindex + i < 0 || vindex + i > width * height * 3){
+						if(vindex + i < 0 || vindex + i > width * height * mVideoBpp){
 							vbit = 0;
 						}else{
 							vbit = videoPixels[vindex + i];
 						}
-						memcpy(calibratedVideoPixels.getPixels() + depthIndex * 3 + i, &vbit, sizeof(char));
+						memcpy(calibratedVideoPixels.getPixels() + depthIndex * mVideoBpp + i, &vbit, sizeof(char));
 					}
 				}
 			}
@@ -776,8 +790,8 @@ ofColor ofxKinectNui::getColorAt(int x, int y){
 	}
 
 	if(bGrabsVideo){
-		int index = (y * width + x) * 3;
-		if(index < 0 || index > width * height * 3){
+		int index = (y * width + x) * mVideoBpp;
+		if(index < 0 || index > width * height * mVideoBpp){
 			return c;
 		}
 		c.r = videoPixels[index + 0];
@@ -815,8 +829,8 @@ ofColor ofxKinectNui::getCalibratedColorAt(int depthX, int depthY){
 	}
 
 	if(bGrabsVideo && bGrabsDepth){
-		int index = (depthY * depthWidth + depthX) * 3;
-		if(index < 0 || index > depthWidth * depthHeight * 3){
+		int index = (depthY * depthWidth + depthX) * mVideoBpp;
+		if(index < 0 || index > depthWidth * depthHeight * mVideoBpp){
 			return c;
 		}
 		c.r = calibratedVideoPixels[index + 0];

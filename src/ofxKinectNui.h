@@ -254,6 +254,7 @@ protected:
 	NUI_IMAGE_RESOLUTION mVideoResolution;	///< video resolution flag
 	NUI_IMAGE_RESOLUTION mDepthResolution;	///< depth resolution flag
 
+	int mVideoBpp;
 
 	UINT updateFlagDefault_;
 	IDrawPixels* videoDraw_;
