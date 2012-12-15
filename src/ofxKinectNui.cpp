@@ -91,6 +91,7 @@ bool ofxKinectNui::init(const InitSetting& setting){
 				setting.grabSkeleton,
 				setting.grabCalibratedVideo,
 				setting.grabLabelCv,
+				setting.videoImageType,
 				setting.videoResolution,
 				setting.depthResolution);
 }
@@ -117,6 +118,7 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 						bool grabSkeleton /*= false*/,
 						bool grabCalibratedVideo /*= false*/,
 						bool grabLabelCv /*= false*/,
+						NUI_IMAGE_TYPE videoImageType /*= NUI_IMAGE_TYPE_COLOR*/,
 						NUI_IMAGE_RESOLUTION videoResolution /*= NUI_IMAGE_RESOLUTION_640x480*/,
 						NUI_IMAGE_RESOLUTION depthResolution /*=NUI_IMAGE_RESOLUTION_320x240*/){
 
@@ -140,6 +142,7 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 	bGrabsSkeleton = grabSkeleton;
 	bGrabsCalibratedVideo = grabCalibratedVideo;
 	bGrabsLabelCv = grabLabelCv;
+	mVideoImageType = videoImageType;
 	mVideoResolution = videoResolution;
 	mDepthResolution = depthResolution;
 
@@ -296,11 +299,11 @@ bool ofxKinectNui::open(bool nearmode /*= false */){
 		bIsNearmode = nearmode;
 		if(isInited()){
 			if(!kinect.IsInited()){
-				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsAudio, bGrabsLabel, bGrabsSkeleton, bGrabsLabelCv, mVideoResolution, mDepthResolution);
+				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsAudio, bGrabsLabel, bGrabsSkeleton, bGrabsLabelCv, mVideoImageType, mVideoResolution, mDepthResolution);
 			}
 		}
 		if(bGrabsVideo){
-			kinect.VideoStream().Open(NUI_IMAGE_TYPE_COLOR, mVideoResolution);
+			kinect.VideoStream().Open(mVideoImageType, mVideoResolution);
 		}
 		if(bGrabsDepth){
 			if(bGrabsLabel || bGrabsLabelCv){
@@ -1076,6 +1079,15 @@ bool ofxKinectNui::grabsCalibratedVideo(){
 */
 bool ofxKinectNui::grabsLabelCv(){
 	return bGrabsLabelCv;
+}
+
+//---------------------------------------------------------------------------
+/**
+	@brief	Gets video resolution
+	@return	video image resolution
+*/
+NUI_IMAGE_TYPE ofxKinectNui::getVideoImageType(){
+	return mVideoImageType;
 }
 
 //---------------------------------------------------------------------------

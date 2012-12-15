@@ -46,6 +46,7 @@ public:
 		bool grabSkeleton:1;
 		bool grabCalibratedVideo:1;
 		bool grabLabelCv:1;
+		NUI_IMAGE_TYPE videoImageType;
 		NUI_IMAGE_RESOLUTION videoResolution;
 		NUI_IMAGE_RESOLUTION depthResolution;
 		InitSetting(){
@@ -56,6 +57,7 @@ public:
 			grabSkeleton = false;
 			grabCalibratedVideo = false;
 			grabLabelCv = false;
+			videoImageType = NUI_IMAGE_TYPE_COLOR;
 			videoResolution = NUI_IMAGE_RESOLUTION_640x480;
 			depthResolution = NUI_IMAGE_RESOLUTION_320x240;
 		}
@@ -97,6 +99,7 @@ public:
 				bool grabSkeleton,
 				bool grabCalibratedVideo,
 				bool grabLabelCv,
+				NUI_IMAGE_TYPE videoImageType = NUI_IMAGE_TYPE_COLOR,
 				NUI_IMAGE_RESOLUTION videoResolution = NUI_IMAGE_RESOLUTION_640x480,
 				NUI_IMAGE_RESOLUTION depthResolution = NUI_IMAGE_RESOLUTION_320x240);
 
@@ -181,6 +184,7 @@ public:
 	NUI_IMAGE_RESOLUTION getVideoResolution();
 	NUI_IMAGE_RESOLUTION getDepthResolution();
 
+	NUI_IMAGE_TYPE getVideoImageType();
 	int getVideoResolutionWidth();
 	int getVideoResolutionHeight();
 	int getDepthResolutionWidth();
@@ -246,6 +250,7 @@ protected:
 	bool bIsFrameNew;				///< frame updated?
 	bool bIsFoundSkeleton;
 
+	NUI_IMAGE_TYPE mVideoImageType;			///< video image type
 	NUI_IMAGE_RESOLUTION mVideoResolution;	///< video resolution flag
 	NUI_IMAGE_RESOLUTION mDepthResolution;	///< depth resolution flag
 
