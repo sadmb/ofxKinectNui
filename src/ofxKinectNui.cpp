@@ -560,8 +560,9 @@ void ofxKinectNui::drawSkeleton(){
 */
 void ofxKinectNui::drawSkeleton(float x, float y, float w, float h){
 	ofPushMatrix();
-	ofScale(1.0f/(float)depthWidth * w, 1.0f/(float)depthHeight * h);
 	ofTranslate(x, y);
+	ofScale(1.0f/(float)depthWidth * w, 1.0f/(float)depthHeight * h);
+	
 	drawSkeleton();
 	ofPopMatrix();
 }
