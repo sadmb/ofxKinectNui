@@ -78,8 +78,17 @@ namespace kinect {
 		*/
         UINT VideoFrame::operator () ( UINT x, UINT y )
         {
-            UINT* video = (UINT*)lockedRect_.pBits;
-            return video[(Width() * y) + x];
+			if (imageFrame_.eImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
+			{
+	            UINT16* video = (UINT16*)lockedRect_.pBits;
+				unsigned char c = video[(Width() * y) + x] >> 8;
+		        return (UINT)(c << 16 | c << 8 | c);
+			}
+			else
+			{
+	            UINT* video = (UINT*)lockedRect_.pBits;
+				return video[(Width() * y) + x];
+			}
         }
 
     
