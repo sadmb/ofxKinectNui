@@ -222,15 +222,19 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 
 	DWORD dwFlags = 0x00000000;
 	updateFlagDefault_ = UPDATE_FLAG_NONE;
+#ifdef NUI_IMAGE_TYPE_COLOR_INFRARED
 	if (mVideoImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
 		mVideoBpp = VIDEO_BPP_INFRARED;
+#endif
 
 	if(bGrabsVideo){
 		int length = width * height;
 		if(!videoPixels.isAllocated()){
 			ofPixelFormat format = OF_PIXELS_RGB;
+#ifdef NUI_IMAGE_TYPE_COLOR_INFRARED
 			if (mVideoImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
 				format = OF_PIXELS_MONO;
+#endif
 			videoPixels.allocate(width, height, format);
 		}
 		updateFlagDefault_ |= UPDATE_FLAG_VIDEO;
@@ -251,8 +255,10 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		if(bGrabsCalibratedVideo){
 			if(!calibratedVideoPixels.isAllocated()){
 				ofPixelFormat format = OF_PIXELS_RGB;
+#ifdef NUI_IMAGE_TYPE_COLOR_INFRARED
 				if (mVideoImageType == NUI_IMAGE_TYPE_COLOR_INFRARED)
 					format = OF_PIXELS_MONO;
+#endif
 				calibratedVideoPixels.allocate(depthWidth, depthHeight, format);
 			}
 			updateFlagDefault_ |= UPDATE_FLAG_CALIBRATED_VIDEO;
