@@ -229,13 +229,38 @@ namespace kinect {
 			lDepthY = (LONG)(lDepthPixel / DepthStream().Width());
 			LONG plColorX = 0, plColorY = 0;
 
-			HRESULT ret = sensor_->NuiImageGetColorPixelCoordinatesFromDepthPixelAtResolution(VideoStream().Resolution(), DepthStream().Resolution(), NULL, lDepthX, lDepthY, usDepthValue, &plColorX, &plColorY);
+			HRESULT ret = sensor_->NuiImageGetColorPixelCoordinatesFromDepthPixelAtResolution(
+				VideoStream().Resolution(), 
+				DepthStream().Resolution(), 
+				NULL,
+				lDepthX, 
+				lDepthY, 
+				usDepthValue, 
+				&plColorX, 
+				&plColorY
+				);
 			if(FAILED(ret)) {
 				return -1;
 			}
 
 			LONG plColorPixel = plColorY * VideoStream().Width() + plColorX;
 			return plColorPixel;
+		}
+
+		bool Kinect::GetColorFrameCoordinatesFromDepthFrame(USHORT* pDepthValues, LONG* pColorCoordinates){
+			HRESULT ret = sensor_->NuiImageGetColorPixelCoordinateFrameFromDepthPixelFrameAtResolution(
+				VideoStream().Resolution(), 
+				DepthStream().Resolution(), 
+				DepthStream().Width() * DepthStream().Height(),
+				pDepthValues,
+				DepthStream().Width() * DepthStream().Height() * 2,
+				pColorCoordinates);
+
+			if(FAILED(ret)){
+				return false;
+			}
+
+			return true;
 		}
 
 		USHORT Kinect::GetPlayerIndexAt(UINT depthX, UINT depthY)

@@ -88,6 +88,7 @@ namespace kinect {
 			SkeletonEngine& Skeleton() { return skeleton_; }
 
 			LONG GetColorPixelCoordinatesFromDepthPixel(LONG lDepthIndex, USHORT usDepthValue);
+			bool GetColorFrameCoordinatesFromDepthFrame(USHORT* pDepthValues, LONG* pColorCoordinates);
 			USHORT GetPlayerIndexAt(UINT depthX, UINT depthY);
 
 			static const LONG CAMERA_ELEVATION_MAXIMUM = NUI_CAMERA_ELEVATION_MAXIMUM;	///< Maximum value of camera elevation 

@@ -23,6 +23,7 @@ ofxKinectNui::ofxKinectNui(){
 	bIsInited = false;
 	bIsOpened = false;
 	bIsNearmode = false;
+	bIsMirror = true;
 	bGrabsVideo = false;
 	bGrabsDepth = false;
 	bGrabsLabel = false;
@@ -74,6 +75,7 @@ ofxKinectNui::~ofxKinectNui(){
 	bIsInited = false;
 	bIsOpened = false;
 	bIsNearmode = false;
+	bIsMirror = true;
 	bGrabsVideo = false;
 	bGrabsDepth = false;
 	bGrabsLabel = false;
@@ -81,6 +83,7 @@ ofxKinectNui::~ofxKinectNui(){
 	bGrabsCalibratedVideo = false;
 	bIsFrameNew = false;
 	bIsFoundSkeleton = false;
+	bIsNearmode = false;
 }
 
 //---------------------------------------------------------------------------
@@ -314,9 +317,8 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 /**
 	@brief	open stream
 */
-bool ofxKinectNui::open(bool nearmode /*= false */){
+bool ofxKinectNui::open(){
 	if(kinect.IsConnected() && !isOpened()){
-		bIsNearmode = nearmode;
 		if(isInited()){
 			if(!kinect.IsInited()){
 				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsAudio, bGrabsLabel, bGrabsSkeleton, bGrabsLabelCv, mVideoImageType, mVideoResolution, mDepthResolution);
@@ -327,9 +329,9 @@ bool ofxKinectNui::open(bool nearmode /*= false */){
 		}
 		if(bGrabsDepth){
 			if(bGrabsLabel || bGrabsLabelCv){
-				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX, mDepthResolution, nearmode);
+				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH_AND_PLAYER_INDEX, mDepthResolution, bIsNearmode);
 			}else{
-				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH, mDepthResolution, nearmode);
+				kinect.DepthStream().Open(NUI_IMAGE_TYPE_DEPTH, mDepthResolution, bIsNearmode);
 			}
 		}
 		if(bGrabsAudio){
@@ -406,15 +408,17 @@ void ofxKinectNui::update(UINT flag){
 		unsigned int videobit;
 		int w = video.Width();
 		int h = video.Height();
+		unsigned char* videoPixs = videoPixels.getPixels();
 		for(int y = 0; y < h; ++y){
 			int offset = y*w;
 			for(int x = 0; x < w; ++x){
 				// windows native color set: ABGR to RGBA
-				videobit = video(x, y) & 0x00FFFFFF;
+				videobit = video(bIsMirror ? x : w - 1 - x, y) & 0x00FFFFFF;
 				videobit = (videobit & 0x00FF0000) >> 16 | (videobit & 0x0000FF00) | (videobit & 0x000000FF) << 16; 
-				memcpy(videoPixels.getPixels() + (offset + x) * mVideoBpp, &videobit, sizeof(char) * mVideoBpp);
+				memcpy(videoPixs + (offset + x) * mVideoBpp, &videobit, sizeof(char) * mVideoBpp);
 			}
 		}
+
 		if(videoDraw_ && (flag & UPDATE_FLAG_VIDEO)) {
 			videoDraw_->setSource(videoPixels);
 		}
@@ -427,29 +431,34 @@ void ofxKinectNui::update(UINT flag){
 		unsigned short playerLabel;
 		int w = depth.Width();
 		int h = depth.Height();
+
+		unsigned short* distancePixs;
+		unsigned char* labelPixs;
+		unsigned char* calibVideoPixs;
+		long* vpixs;
+
+		if(flag & UPDATE_FLAG_DISTANCE){
+			distancePixs = distancePixels.getPixels();
+		}
+		if(flag & UPDATE_FLAG_LABEL){
+			labelPixs = labelPixels.getPixels();
+		}
+		if(flag & UPDATE_FLAG_CALIBRATED_VIDEO){
+			calibVideoPixs = calibratedVideoPixels.getPixels();
+			vpixs = new long[w * h * 2];
+		kinect.GetColorFrameCoordinatesFromDepthFrame((USHORT*)depth.Bits(), vpixs);
+		}
 		for(int y = 0; y < h; ++y){
 			int offset = y*w;
 			for(int x = 0; x < w; ++x){
 				int depthIndex = offset + x;
-				depthbit = depth(x, y) >> 3;
-				playerLabel = depth(x, y) & 0x7;
+				depthbit = depth(bIsMirror ? x : w - 1 - x, y) >> 3;
+				playerLabel = depth(bIsMirror ? x : w - 1 - x, y) & 0x7;
 				if(flag & UPDATE_FLAG_LABEL){
-					memcpy(labelPixels.getPixels() + depthIndex * 4, &color[playerLabel], sizeof(char) * 4);
-				}
-				if(flag & UPDATE_FLAG_LABEL_CV){
-					for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
-						unsigned char lb;
-						if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
-							lb = 0xFF;
-							memcpy(labelPixelsCv[i].getPixels() + depthIndex, &lb, sizeof(char));
-						}else{
-							lb = 0x00;
-							memcpy(labelPixelsCv[i].getPixels() + depthIndex, &lb, sizeof(char));
-						}
-					}
+					memcpy(labelPixs + depthIndex * 4, &color[playerLabel], sizeof(char) * 4);
 				}
 				if(flag & UPDATE_FLAG_DISTANCE) {
-					memcpy(distancePixels.getPixels() + depthIndex, &depthbit, sizeof(short));
+					memcpy(distancePixs + depthIndex, &depthbit, sizeof(short));
 				}
 				if(flag & UPDATE_FLAG_DEPTH) {
 					if(bIsDepthNearValueWhite){
@@ -458,8 +467,12 @@ void ofxKinectNui::update(UINT flag){
 						depthPixels[depthIndex] = depthPixelsLookupFarWhite[depthbit];
 					}
 				}
-				if(flag & UPDATE_FLAG_CALIBRATED_VIDEO) {
-					long vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depthIndex, 0) * mVideoBpp;
+
+				if(flag & UPDATE_FLAG_CALIBRATED_VIDEO){
+					long vindex;
+					long vx = bIsMirror ? vpixs[depthIndex * 2] : w - - vpixs[depthIndex * 2];
+					vindex = (vx + vpixs[depthIndex * 2 + 1] * width) * mVideoBpp;
+//					vindex = kinect.GetColorPixelCoordinatesFromDepthPixel(depthIndex, 0) * mVideoBpp;
 					for(int i = 0; i < mVideoBpp; ++i){
 						unsigned char vbit;
 						if(vindex + i < 0 || vindex + i > width * height * mVideoBpp){
@@ -467,17 +480,40 @@ void ofxKinectNui::update(UINT flag){
 						}else{
 							vbit = videoPixels[vindex + i];
 						}
-						memcpy(calibratedVideoPixels.getPixels() + depthIndex * mVideoBpp + i, &vbit, sizeof(char));
+						memcpy(calibVideoPixs + depthIndex * mVideoBpp + i, &vbit, sizeof(char));
 					}
 				}
 			}
 		}
+		if(flag & UPDATE_FLAG_LABEL_CV){
+			for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
+				unsigned char lb;
+				unsigned char* labelPixsCv = labelPixelsCv[i].getPixels();
+				for(int j = 0; j < w * h; j++){
+					if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
+						lb = 0xFF;
+						memcpy(labelPixsCv + j, &lb, sizeof(char));
+					}else{
+						lb = 0x00;
+						memcpy(labelPixsCv + j, &lb, sizeof(char));
+					}
+				}
+			}
+		}
+
 		if(depthDraw_ && (flag & UPDATE_FLAG_DEPTH)) {
 			depthDraw_->setSource(depthPixels);
 		}
 		if(labelDraw_ && (flag & UPDATE_FLAG_LABEL)) {
 			labelDraw_->setSource(labelPixels);
 		}
+
+		// safe delete
+		if(vpixs){
+			delete[] vpixs;
+			vpixs = NULL;
+		}
+
 	}
 	if(flag & UPDATE_FLAG_GROUP_SKELETON){
 		// Get the skeleton data of next frame
@@ -489,8 +525,8 @@ void ofxKinectNui::update(UINT flag){
 				if( skeleton[i].TrackingState() == NUI_SKELETON_TRACKED){
 					for(int j = 0; j < kinect::nui::SkeletonData::POSITION_COUNT; ++j){
 						kinect::nui::SkeletonData::SkeletonPoint p = skeleton[i].TransformSkeletonToDepthImage(j, mDepthResolution);
-						skeletonPoints[i][j] = ofPoint(p.x, p.y, p.depth);
-						rawSkeletonPoints[i][j] = ofPoint(skeleton[i][j].x, skeleton[i][j].y, skeleton[i][j].z);            
+						skeletonPoints[i][j] = ofPoint(bIsMirror ? p.x : depthWidth - 1 - p.x, p.y, p.depth);
+						rawSkeletonPoints[i][j] = ofPoint(bIsMirror ? skeleton[i][j].x : -skeleton[i][j].x, skeleton[i][j].y, skeleton[i][j].z);            
 					}
 				}else{
 					// if skeleton is not tracked, set top z data negative.

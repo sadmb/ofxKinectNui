@@ -103,7 +103,7 @@ public:
 				NUI_IMAGE_RESOLUTION videoResolution = NUI_IMAGE_RESOLUTION_640x480,
 				NUI_IMAGE_RESOLUTION depthResolution = NUI_IMAGE_RESOLUTION_320x240);
 
-	bool open(bool nearmode = false);
+	bool open();
 	void close();
 	void update(){update(UPDATE_FLAG_ALL);}
 	void update(UINT flag);
@@ -132,6 +132,8 @@ public:
 	void drawSkeleton(const ofRectangle& rect);
 	
 	void setAngle(int angleInDegrees);
+	void setMirror(bool isMirror) { bIsMirror = isMirror; }
+	void setNearmode(bool isNearmode) { bIsNearmode = isNearmode; }
 	int getCurrentAngle();
 	int getTargetAngle();
 
@@ -172,6 +174,7 @@ public:
 	bool isNearmode();
 	bool isFoundSkeleton();
 	bool isTrackedSkeleton(int id);
+	bool isMirror();
 
 	bool grabsVideo();
 	bool grabsDepth();
@@ -247,6 +250,7 @@ protected:
 	bool bGrabsSkeleton;			///< grabs skeleton?
 	bool bGrabsCalibratedVideo;		///< grabs calibrated video?
 	bool bGrabsLabelCv;				///< grabs separated label for cv?
+	bool bIsMirror;					///< is mirror mode
 	bool bIsFrameNew;				///< frame updated?
 	bool bIsFoundSkeleton;
 

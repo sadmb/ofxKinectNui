@@ -26,10 +26,11 @@ void testApp::setup() {
 	initSetting.grabCalibratedVideo = true;
 	initSetting.grabLabelCv = true;
 	initSetting.videoResolution = NUI_IMAGE_RESOLUTION_640x480;
-	initSetting.depthResolution = NUI_IMAGE_RESOLUTION_320x240;
+	initSetting.depthResolution = NUI_IMAGE_RESOLUTION_640x480;
 	kinect.init(initSetting);
+//	kinect.setMirror(false); // if you want to get NOT mirror mode, uncomment here
+//	kinect.setNearmode(true); // if you want to set nearmode, uncomment here
 	kinect.open();
-//	kinect.open(true); // when you want to use near mode (default is false)
 
 	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
 	
@@ -171,32 +172,48 @@ void testApp::draw() {
 
 //--------------------------------------------------------------
 void testApp::drawCalibratedTexture(){
-	int offsetX = -400;
-	int offsetY = -300;
-	glTranslatef(512, 386, 0);
-	calibratedTexture.loadData(kinect.getCalibratedVideoPixels());
-	for(int y = 0; y < kinect.getDepthResolutionHeight(); y++){
-		for(int x = 0; x < kinect.getDepthResolutionWidth(); x++){
-			float distance = kinect.getDistanceAt(x, y);
-			if(distance > 500 && distance < 1500){
-				glPushMatrix();
-				float radius = (1500 - distance);
-				ofSetColor(kinect.getCalibratedColorAt(x, y));
-				ofRotateY(mRotationY);
-				ofRotateX(mRotationX);
-				glTranslatef(x * 2.5 + offsetX, y * 2.5 + offsetY, radius);
-				ofBox(5);
-				glPopMatrix();
+	ofPixels calibpix = kinect.getCalibratedVideoPixels();
+	ofMesh mesh;
+	mesh.setMode(OF_PRIMITIVE_TRIANGLES);
+	int w = kinect.getDepthResolutionWidth();
+	int h = kinect.getDepthResolutionHeight();
+	ofShortPixels dis = kinect.getDistancePixels();
+	for(int y = 0; y < h; y++){
+		for(int x = 0; x < w; x++){
+			int dIndex = y * w + x;
+			short distance = dis[dIndex];
+			if(distance > 500 && distance < 3000){
+				ofFloatColor c = ofFloatColor(calibpix[3 * dIndex] / 255.f, calibpix[3 * dIndex + 1] / 255.f, calibpix[3 * dIndex + 2] / 255.f);
+				mesh.addColor(c);
+
+				// z-position is just proper value
+				mesh.addVertex(ofPoint(x, y, (1500 - distance) * 0.5f));
+				mesh.addIndex(y * w + x);
 			}else{
-				glPushMatrix();
-				ofSetColor(kinect.getCalibratedColorAt(x, y));
-				ofRotateY(mRotationY);
-				ofRotateX(mRotationX);
-				ofRect(x * 2.5 + offsetX, y * 2.5 + offsetY, 5, 5);
-				glPopMatrix();
+				ofFloatColor c = ofFloatColor(calibpix[3 * dIndex] / 255.f, calibpix[3 * dIndex + 1] / 255.f, calibpix[3 * dIndex + 2] / 255.f, 0.f);
+				mesh.addColor(c);
+				mesh.addVertex(ofPoint(x, y, 0));
+				mesh.addIndex(y * w + x);
 			}
 		}
 	}
+
+	for(int y = 0; y < h - 1; y += 2){
+		for(int x = 0; x < w - 1; x += 2){
+			int pos1 = w * y + x;
+			int pos2 = w * y + x + 1;
+			int pos3 = w * (y + 1) + x;
+			int pos4 = w * (y + 1) + x + 1;
+			mesh.addTriangle(pos1, pos2, pos3);
+			mesh.addTriangle(pos2, pos3, pos4);
+		}
+	}
+
+	ofRotateY(mRotationY);
+	ofRotateX(mRotationX);
+	ofEnableAlphaBlending();
+	mesh.drawVertices();
+	ofDisableAlphaBlending();
 }
 
 
