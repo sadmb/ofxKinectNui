@@ -59,11 +59,12 @@ namespace kinect {
 				UPDATE_FLAG_ALL			= 0xFFFFFFFF,
 			};
 
+			
 			Kinect(int index = -1);
 			Kinect(BSTR deviceName);
 			~Kinect();
 
-			void Initialize( DWORD dwFlags );
+			std::string Initialize( DWORD dwFlags );	//	returns error string
 			void Shutdown();
 
 			bool IsInited();
@@ -93,6 +94,8 @@ namespace kinect {
 
 			static const LONG CAMERA_ELEVATION_MAXIMUM = NUI_CAMERA_ELEVATION_MAXIMUM;	///< Maximum value of camera elevation 
 			static const LONG CAMERA_ELEVATION_MINIMUM = NUI_CAMERA_ELEVATION_MINIMUM;	///< Minimum value of camera elevation
+
+			static std::string	GetErrorString(DWORD Error);
 
 		private:
 			friend class KinectContext;
