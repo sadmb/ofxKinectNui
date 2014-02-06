@@ -84,17 +84,18 @@ namespace kinect {
 			@arg		NUI_INITIALIZE_FLAG_USES_SKELETON				Get skeleton data
 			@arg		NUI_INITIALIZE_FLAG_USES_DEPTH					Get depth data
 		*/
-		void Kinect::Initialize( DWORD dwFlags )
+		std::string Kinect::Initialize( DWORD dwFlags )
 		{
 			if(sensor_ == NULL){
-				return;
+				return "No sensor";
 			}
 			HRESULT ret = sensor_->NuiInitialize( dwFlags );
 			if (FAILED(ret)) {
 				isInited_ = false;
-				return;
+				return GetErrorString( ret );
 			}
 			isInited_ = true;
+			return "";
 		}
 
 		//----------------------------------------------------------
@@ -356,5 +357,38 @@ namespace kinect {
 				}
 			}
 		}
+
+		std::string Kinect::GetErrorString(DWORD Error)
+		{
+			switch ( Error )
+			{
+			case E_NUI_DEVICE_NOT_CONNECTED:	return "E_NUI_DEVICE_NOT_CONNECTED";
+			case E_NUI_DEVICE_NOT_READY:		return "E_NUI_DEVICE_NOT_READY";
+			case E_NUI_ALREADY_INITIALIZED:		return "E_NUI_ALREADY_INITIALIZED";
+			case E_NUI_NO_MORE_ITEMS:			return "E_NUI_NO_MORE_ITEMS";
+			case S_NUI_INITIALIZING:			return "S_NUI_INITIALIZING";
+			case E_NUI_FRAME_NO_DATA:			return "E_NUI_FRAME_NO_DATA";
+			case E_NUI_STREAM_NOT_ENABLED:		return "E_NUI_STREAM_NOT_ENABLED";
+			case E_NUI_IMAGE_STREAM_IN_USE:		return "E_NUI_IMAGE_STREAM_IN_USE";
+			case E_NUI_FRAME_LIMIT_EXCEEDED:	return "E_NUI_FRAME_LIMIT_EXCEEDED";
+			case E_NUI_FEATURE_NOT_INITIALIZED:	return "E_NUI_FEATURE_NOT_INITIALIZED";
+			case E_NUI_NOTGENUINE:				return "E_NUI_NOTGENUINE";
+			case E_NUI_INSUFFICIENTBANDWIDTH:	return "E_NUI_INSUFFICIENTBANDWIDTH";
+			case E_NUI_NOTSUPPORTED:			return "E_NUI_NOTSUPPORTED";
+			case E_NUI_DEVICE_IN_USE:			return "E_NUI_DEVICE_IN_USE";
+			case E_NUI_DATABASE_NOT_FOUND:		return "E_NUI_DATABASE_NOT_FOUND";
+			case E_NUI_DATABASE_VERSION_MISMATCH:	return "E_NUI_DATABASE_VERSION_MISMATCH";
+			case E_NUI_HARDWARE_FEATURE_UNAVAILABLE:	return "E_NUI_HARDWARE_FEATURE_UNAVAILABLE";
+			case E_NUI_NOTCONNECTED:			return "E_NUI_NOTCONNECTED";
+			case E_NUI_NOTREADY:				return "E_NUI_NOTREADY";
+			case E_NUI_SKELETAL_ENGINE_BUSY:	return "E_NUI_SKELETAL_ENGINE_BUSY";
+			case E_NUI_NOTPOWERED:				return "E_NUI_NOTPOWERED";
+			case E_NUI_BADINDEX:				return "E_NUI_BADINDEX";
+			//case E_NUI_BADIINDEX:				return "E_NUI_BADIINDEX";			
+			default:
+				return "Unkown error";
+			};
+		}
+
 	} ///< namespace nui
 } ///< namespace kinect

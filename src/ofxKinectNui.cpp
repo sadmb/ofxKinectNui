@@ -304,10 +304,10 @@ bool ofxKinectNui::init(bool grabVideo /*= true*/,
 		}
 	}
 
-    kinect.Initialize(dwFlags);
+    std::string Error = kinect.Initialize(dwFlags);
 
 	if(!kinect.IsInited()){
-		ofLog(OF_LOG_ERROR, "ofxKinectNui: Initialization failed.");
+		ofLog(OF_LOG_ERROR, "ofxKinectNui: Initialization failed." + Error );
 	}
 	
 	return kinect.IsInited();
