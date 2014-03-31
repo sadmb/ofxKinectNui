@@ -89,6 +89,12 @@ namespace kinect {
 			if(sensor_ == NULL){
 				return "No sensor";
 			}
+#ifndef USES_KINECT_AUDIOSTREAM
+			if(dwFlags & NUI_INITIALIZE_FLAG_USES_AUDIO)
+			{
+				return "You should add 'USES_KINECT_AUDIOSTREAM' value to Project Property -> Configuration Properties -> C/C++ -> Preprocessor Definitions to use audio functions";
+			}
+#endif
 			HRESULT ret = sensor_->NuiInitialize( dwFlags );
 			if (FAILED(ret)) {
 				isInited_ = false;

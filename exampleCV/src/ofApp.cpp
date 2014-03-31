@@ -1,6 +1,6 @@
 /******************************************************************/
 /**
- * @file	testApp.cpp
+ * @file	ofApp.cpp
  * @brief	Example for ofxKinectNui addon
  * @note
  * @todo
@@ -10,10 +10,10 @@
  * @date	Oct. 28, 2011
  */
 /******************************************************************/
-#include "testApp.h"
+#include "ofApp.h"
 
 //--------------------------------------------------------------
-void testApp::setup() {
+void ofApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
 	ofxKinectNui::InitSetting initSetting;
@@ -30,30 +30,80 @@ void testApp::setup() {
 
 	ofSetVerticalSync(true);
 
-	angle = kinect.getCurrentAngle();
-	
-	depthImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
-	thresholdedImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
-	threshold = 20;
-	
-	colorImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight(), OF_IMAGE_COLOR_ALPHA);
-	labelImages = new ofxCvGrayscaleImage[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM];
-	for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM; i++){
-		labelImages[i].allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
-	}
-	contourFinders = new ofxCvContourFinder[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM - 1]; /// we get 7 players in maximum.
-	
+	labelImages = NULL;
+	contourFinders = NULL;
 	settings.loadFile("settings.xml");
 	nearClipping = settings.getValue("KINECT:CLIPPING:NEAR", kinect.getNearClippingDistance());
 	farClipping = settings.getValue("KINECT:CLIPPING:FAR", kinect.getFarClippingDistance());
-	kinect.setFarClippingDistance(farClipping);
-	kinect.setNearClippingDistance(nearClipping);
+
+	allocate();
+
+	kinect.addKinectListener(this, &ofApp::kinectPlugged, &ofApp::kinectUnplugged);
 
 	ofSetFrameRate(60);
 }
 
 //--------------------------------------------------------------
-void testApp::update() {
+void ofApp::allocate() {
+	if(kinect.isOpened())
+	{
+		angle = kinect.getCurrentAngle();
+	
+		depthImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+		thresholdedImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+		threshold = 20;
+	
+		colorImage.allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight(), OF_IMAGE_COLOR_ALPHA);
+		labelImages = new ofxCvGrayscaleImage[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM];
+		for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM; i++){
+			labelImages[i].allocate(kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+		}
+		contourFinders = new ofxCvContourFinder[ofxKinectNui::KINECT_PLAYERS_INDEX_NUM - 1]; /// we get 7 players in maximum.
+
+		kinect.setFarClippingDistance(farClipping);
+		kinect.setNearClippingDistance(nearClipping);
+	}
+}
+
+//--------------------------------------------------------------
+void ofApp::clear() {
+	angle = kinect.getCurrentAngle();
+	
+	if(depthImage.bAllocated)
+	{
+		depthImage.clear();
+	}
+
+	if(thresholdedImage.bAllocated)
+	{
+		thresholdedImage.clear();
+	}
+	
+	if(colorImage.isAllocated())
+	{
+		colorImage.clear();
+	}
+	if(labelImages)
+	{
+		for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM; i++){
+			if(labelImages[i].bAllocated)
+			{
+				labelImages[i].clear();
+			}
+		}
+		delete[] labelImages;
+		labelImages = NULL;
+	}
+
+	if(contourFinders)
+	{
+		delete[] contourFinders;
+		contourFinders = NULL;
+	}
+}
+
+//--------------------------------------------------------------
+void ofApp::update() {
 	kinect.update();
 	if(kinect.isOpened()){
 		depthImage.setFromPixels(kinect.getDepthPixels());
@@ -76,35 +126,36 @@ void testApp::update() {
 }
 
 //--------------------------------------------------------------
-void testApp::draw() {
+void ofApp::draw() {
 	ofBackground(100, 100, 100);
-	depthImage.draw(20, 20);		/// normal depth images
-	thresholdedImage.draw(360, 20);	/// thresholded depth images
+	if(kinect.isOpened()){
+		depthImage.draw(20, 20);		/// normal depth images
+		thresholdedImage.draw(360, 20);	/// thresholded depth images
 
-	ofSetColor(0);
-	ofFill();
-	ofRect(700, 20, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
-	ofRect(700, 280, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
-	ofRect(20, 280, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
-	ofSetColor(255);
+		ofSetColor(0);
+		ofFill();
+		ofRect(700, 20, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+		ofRect(700, 280, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+		ofRect(20, 280, kinect.getDepthResolutionWidth(), kinect.getDepthResolutionHeight());
+		ofSetColor(255);
 
-	ofEnableAlphaBlending();
-	colorImage.draw(20, 280);		/// normal label images
-	ofDisableAlphaBlending();
-	labelImages[0].draw(360, 280);	/// whole players' silhouette
+		ofEnableAlphaBlending();
+		colorImage.draw(20, 280);		/// normal label images
+		ofDisableAlphaBlending();
+		labelImages[0].draw(360, 280);	/// whole players' silhouette
 
-	// contours from depth images
-	for(int i = 0; i < contourFinderDepth.nBlobs; i++){
-		contourFinderDepth.blobs[i].draw(700, 20);
-	}
+		// contours from depth images
+		for(int i = 0; i < contourFinderDepth.nBlobs; i++){
+			contourFinderDepth.blobs[i].draw(700, 20);
+		}
 
-	// contours from label images
-	for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM - 1; i++){
-		for(int j = 0; j < contourFinders[i].nBlobs; j++){
-			contourFinders[i].blobs[j].draw(700, 280);
+		// contours from label images
+		for(int i = 0; i < ofxKinectNui::KINECT_PLAYERS_INDEX_NUM - 1; i++){
+			for(int j = 0; j < contourFinders[i].nBlobs; j++){
+				contourFinders[i].blobs[j].draw(700, 280);
+			}
 		}
 	}
-
 	// draw instructions
 	ofSetColor(255, 255, 255);
 	stringstream reportStream;
@@ -120,13 +171,15 @@ void testApp::draw() {
 
 
 //--------------------------------------------------------------
-void testApp::exit() {
+void ofApp::exit() {
 	kinect.setAngle(0);
 	kinect.close();
+	kinect.removeKinectListener(this);
+	clear();
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed (int key) {
+void ofApp::keyPressed (int key) {
 	switch(key){
 	case 'o':
 	case 'O':
@@ -183,22 +236,34 @@ void testApp::keyPressed (int key) {
 }
 
 //--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y) {
+void ofApp::mouseMoved(int x, int y) {
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h){
+}
+
+//--------------------------------------------------------------
+void ofApp::kinectPlugged () {
+	kinect.open();
+	allocate();
+}
+
+//--------------------------------------------------------------
+void ofApp::kinectUnplugged () {
+	kinect.close();
+	clear();
 }
 

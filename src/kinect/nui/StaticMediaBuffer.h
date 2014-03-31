@@ -44,11 +44,13 @@ namespace kinect {
 					*ppv = (IUnknown*)this;
 					return NOERROR;
 				}
+#ifdef USES_KINECT_AUDIOSTREAM
 				else if (riid == IID_IMediaBuffer) {
 					AddRef();
 					*ppv = (IMediaBuffer*)this;
 					return NOERROR;
 				}
+#endif
 				else
 					return E_NOINTERFACE;
 			}

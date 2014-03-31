@@ -1,4 +1,12 @@
 #include "kinect/nui/AudioStream.h"
+#include "Kinect.h"
+
+#ifdef USES_KINECT_AUDIOSTREAM
+#pragma comment(lib, "Msdmo.lib")
+#pragma comment(lib, "dmoguids.lib")
+#pragma comment(lib, "amstrmid.lib")
+#endif
+
 
 namespace kinect {
 	namespace nui {
@@ -36,7 +44,9 @@ namespace kinect {
 				propertyStore_->Release();
 				propertyStore_ = NULL;
 			}
+#ifdef USES_KINECT_AUDIOSTREAM
 			CoUninitialize();
+#endif
         }
 		
 		//----------------------------------------------------------
@@ -46,11 +56,13 @@ namespace kinect {
 		*/
 		void AudioStream::CopySensor( INuiSensor* sensor )
 		{
+#ifdef USES_KINECT_AUDIOSTREAM
 			if(sensor_ != NULL){
 				sensor_->Release();
 				sensor_ = NULL;
 			}
 			sensor_ = sensor;
+#endif
 		}
 
 		//----------------------------------------------------------
@@ -60,6 +72,9 @@ namespace kinect {
 		*/
 		void AudioStream::Open(AEC_SYSTEM_MODE mode /*= OPTIBEAM_ARRAY_ONLY */)
 		{
+#ifndef USES_KINECT_AUDIOSTREAM
+			return;
+#else
 			if((mode == ADAPTIVE_ARRAY_ONLY) || (mode == ADAPTIVE_ARRAY_AND_AEC) || (mode == MODE_NOT_SET)){
 				return;
 			}
@@ -139,6 +154,7 @@ namespace kinect {
 			memset(&outputBufferStruct_, 0, sizeof(outputBufferStruct_));
 			outputBufferStruct_.pBuffer = &outputMediaBuffer_;
 			outputMediaBuffer_.SetBufferLength(GetWaveFormat().nSamplesPerSec * GetWaveFormat().nBlockAlign);
+#endif
 		}
 
 		//----------------------------------------------------------
@@ -157,6 +173,9 @@ namespace kinect {
 		*/
 		std::vector<BYTE> AudioStream::Read()
 		{
+#ifndef USES_KINECT_AUDIOSTREAM
+			return std::vector<BYTE>(NULL);
+#else
 			outputMediaBuffer_.Clear();
 			do{
 				outputBufferStruct_.dwStatus = 0;
@@ -180,6 +199,7 @@ namespace kinect {
 			}while(outputBufferStruct_.dwStatus & DMO_OUTPUT_DATA_BUFFERF_INCOMPLETE);
 
 			return outputMediaBuffer_.Clone();
+#endif
 		}
 	} // namespace nui
 } // namespace kinect

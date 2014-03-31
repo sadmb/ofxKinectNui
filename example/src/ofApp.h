@@ -1,6 +1,6 @@
 /******************************************************************/
 /**
- * @file	testApp.h
+ * @file	ofApp.h
  * @brief	Example for ofxKinectNui addon
  * @note
  * @todo
@@ -24,7 +24,7 @@ class ofxKinectNuiDrawSkeleton;
 //#define USE_TWO_KINECTS
 
 
-class testApp : public ofBaseApp {
+class ofApp : public ofBaseApp {
 	public:
 
 		void setup();

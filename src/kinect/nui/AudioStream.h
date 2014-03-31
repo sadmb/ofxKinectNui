@@ -14,6 +14,9 @@
 #ifndef KINECT_NUI_AUDIO_STREAM_H
 #define KINECT_NUI_AUDIO_STREAM_H
 
+// define below if you want to use audio stream
+//#define USES_KINECT_AUDIOSTREAM
+
 #include <memory>
 
 #include <Windows.h>
@@ -23,6 +26,7 @@
 #include <NuiApi.h>
 
 #include "kinect/nui/StaticMediaBuffer.h"
+
 
 #include "win32/Event.h"
 

@@ -15,6 +15,9 @@
 #ifndef KINECT_NUI_KINECT_H
 #define KINECT_NUI_KINECT_H
 
+// define below if you want to use audio stream
+//#define USES_KINECT_AUDIOSTREAM
+
 #include <memory>
 #include <map>
 

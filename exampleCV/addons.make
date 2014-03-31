@@ -1,0 +1,3 @@
+ofxKinectNui
+ofxOpenCv
+ofxXmlSettings

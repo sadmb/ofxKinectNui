@@ -10,7 +10,7 @@
  * @date	Oct. 28, 2011
  */
 /******************************************************************/
-#include "testApp.h" // Needs to be in front of ofMain.h
+#include "ofApp.h" // Needs to be in front of ofMain.h
 #include "ofMain.h"
 #include "ofAppGlutWindow.h"
 
@@ -23,6 +23,6 @@ int main( ){
 	// this kicks off the running of my app
 	// can be OF_WINDOW or OF_FULLSCREEN
 	// pass in width and height too:
-	ofRunApp( new testApp());
+	ofRunApp( new ofApp());
 
 }

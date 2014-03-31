@@ -1,6 +1,6 @@
 /******************************************************************/
 /**
- * @file	testApp.cpp
+ * @file	ofApp.cpp
  * @brief	Example for ofxKinectNui addon
  * @note
  * @todo
@@ -10,11 +10,11 @@
  * @date	Oct. 28, 2011
  */
 /******************************************************************/
-#include "testApp.h"
+#include "ofApp.h"
 #include "ofxKinectNuiDraw.h"
 
 //--------------------------------------------------------------
-void testApp::setup() {
+void ofApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
 	ofxKinectNui::InitSetting initSetting;
@@ -34,7 +34,7 @@ void testApp::setup() {
 	bPlugged = kinect.isConnected();
 	bUnplugged = false;
 
-	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
+	kinect.addKinectListener(this, &ofApp::kinectPlugged, &ofApp::kinectUnplugged);
 	ofSetFrameRate(60);
 
 	soundStream.listDevices();
@@ -57,7 +57,7 @@ void testApp::setup() {
 }
 
 //--------------------------------------------------------------
-void testApp::update() {
+void ofApp::update() {
 	kinect.update();
 	if(bRecord){
 		kinectSoundRecorder.update();
@@ -76,7 +76,7 @@ void testApp::update() {
 }
 
 //--------------------------------------------------------------
-void testApp::draw() {
+void ofApp::draw() {
 	ofColor magenta(245, 58, 135);
 	ofBackground(100, 100, 100);
 
@@ -214,7 +214,7 @@ void testApp::draw() {
 }
 
 //--------------------------------------------------------------
-void testApp::audioIn(float * input, int bufferSize, int nChannels){	
+void ofApp::audioIn(float * input, int bufferSize, int nChannels){	
 	
 	float curVol = 0.0;
 	
@@ -244,7 +244,7 @@ void testApp::audioIn(float * input, int bufferSize, int nChannels){
 
 
 //--------------------------------------------------------------
-void testApp::exit() {
+void ofApp::exit() {
 	stopPlayback();
 	kinect.setAngle(0);
 	kinect.close();
@@ -253,7 +253,7 @@ void testApp::exit() {
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed (int key) {
+void ofApp::keyPressed (int key) {
 	switch(key){
 	case 'o':
 	case 'O':
@@ -297,37 +297,37 @@ void testApp::keyPressed (int key) {
 }
 
 //--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y) {
+void ofApp::mouseMoved(int x, int y) {
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h){
 }
 
 //--------------------------------------------------------------
-void testApp::kinectPlugged(){
+void ofApp::kinectPlugged(){
 	bPlugged = true;
 }
 
 //--------------------------------------------------------------
-void testApp::kinectUnplugged(){
+void ofApp::kinectUnplugged(){
 	bPlugged = false;
 }
 
 //--------------------------------------------------------------
-void testApp::startRecording(){
+void ofApp::startRecording(){
 	if(!bRecord){
 		// stop playback if running
 		stopPlayback();
@@ -338,7 +338,7 @@ void testApp::startRecording(){
 }
 
 //--------------------------------------------------------------
-void testApp::stopRecording(){
+void ofApp::stopRecording(){
 	if(bRecord){
 		kinectSoundRecorder.close();
 		bRecord = false;
@@ -346,7 +346,7 @@ void testApp::stopRecording(){
 }
 
 //--------------------------------------------------------------
-void testApp::startPlayback(){
+void ofApp::startPlayback(){
 	if(!bPlayback){
 		stopRecording();
 		kinect.close();
@@ -360,7 +360,7 @@ void testApp::startPlayback(){
 }
 
 //--------------------------------------------------------------
-void testApp::stopPlayback(){
+void ofApp::stopPlayback(){
 	if(bPlayback){
 		player.stop();
 		player.unloadSound();

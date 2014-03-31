@@ -1,0 +1,141 @@
+<?xml version="1.0"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup>
+		<ClCompile Include="src\ofApp.cpp">
+			<Filter>src</Filter>
+		</ClCompile>
+		<ClCompile Include="src\main.cpp">
+			<Filter>src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\AudioStream.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\ImageFrame.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\ImageStream.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\Kinect.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\KinectContext.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\SkeletonEngine.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\SkeletonFrame.cpp">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNui.cpp">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiDraw.cpp">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiPlayer.cpp">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiRecorder.cpp">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiSoundRecorder.cpp">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClCompile>
+		<ClCompile Include="..\..\..\addons\ofxKinectNui\src\win32\Event.cpp">
+			<Filter>addons\ofxKinectNui\src\win32</Filter>
+		</ClCompile>
+	</ItemGroup>
+	<ItemGroup>
+		<Filter Include="src">
+			<UniqueIdentifier>{d8376475-7454-4a24-b08a-aac121d3ad6f}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="addons">
+			<UniqueIdentifier>{71834F65-F3A9-211E-73B8-DC85}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="addons\ofxKinectNui">
+			<UniqueIdentifier>{34F24753-3B66-A83C-8577-1CC0}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="addons\ofxKinectNui\src">
+			<UniqueIdentifier>{BE05A897-E6B4-5BE9-7984-F944}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="addons\ofxKinectNui\src\kinect">
+			<UniqueIdentifier>{29FA98CA-2316-A548-87F8-7D8B}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="addons\ofxKinectNui\src\kinect\nui">
+			<UniqueIdentifier>{CED4AC24-FC0A-1CB7-D732-5D4D}</UniqueIdentifier>
+		</Filter>
+		<Filter Include="addons\ofxKinectNui\src\win32">
+			<UniqueIdentifier>{E28E7850-8C70-726E-7479-6C48}</UniqueIdentifier>
+		</Filter>
+	</ItemGroup>
+	<ItemGroup>
+		<ClInclude Include="src\ofApp.h">
+			<Filter>src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\AudioStream.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\ImageFrame.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\ImageStream.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\Kinect.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\KinectContext.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\KinectListener.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\SkeletonEngine.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\SkeletonFrame.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\StaticMediaBuffer.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\WaveFileWriter.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\kinect\nui\WaveOutput.h">
+			<Filter>addons\ofxKinectNui\src\kinect\nui</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxBase3DVideo.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNui.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiDraw.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiDrawInterface.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiPlayer.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiRecorder.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\ofxKinectNuiSoundRecorder.h">
+			<Filter>addons\ofxKinectNui\src</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\win32\Event.h">
+			<Filter>addons\ofxKinectNui\src\win32</Filter>
+		</ClInclude>
+		<ClInclude Include="..\..\..\addons\ofxKinectNui\src\win32\SpinLock.h">
+			<Filter>addons\ofxKinectNui\src\win32</Filter>
+		</ClInclude>
+	</ItemGroup>
+	<ItemGroup>
+		<ResourceCompile Include="icon.rc" />
+	</ItemGroup>
+</Project>

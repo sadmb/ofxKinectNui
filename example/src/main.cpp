@@ -10,19 +10,19 @@
  * @date	Oct. 28, 2011
  */
 /******************************************************************/
-#include "testApp.h" // Needs to be in front of ofMain.h
+#include "ofApp.h" // Needs to be in front of ofMain.h
 #include "ofMain.h"
 #include "ofAppGlutWindow.h"
 
 //========================================================================
 int main( ){
-
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_ALWAYS_DF | _CRTDBG_LEAK_CHECK_DF);
     ofAppGlutWindow window;
 	ofSetupOpenGL(&window, 1024,768, OF_WINDOW);			// <-------- setup the GL context
 
 	// this kicks off the running of my app
 	// can be OF_WINDOW or OF_FULLSCREEN
 	// pass in width and height too:
-	ofRunApp( new testApp());
+	ofRunApp( new ofApp());
 
 }

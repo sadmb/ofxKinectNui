@@ -1,6 +1,6 @@
 /******************************************************************/
 /**
- * @file	testApp.cpp
+ * @file	ofApp.cpp
  * @brief	Example for ofxKinectNui addon
  * @note
  * @todo
@@ -10,21 +10,21 @@
  * @date	Oct. 28, 2011
  */
 /******************************************************************/
-#include "testApp.h"
+#include "ofApp.h"
 #include "ofxKinectNuiDraw.h"
 
 //--------------------------------------------------------------
-void testApp::setup() {
+void ofApp::setup() {
 	ofSetLogLevel(OF_LOG_VERBOSE);
 	
 	ofxKinectNui::InitSetting initSetting;
 	initSetting.grabVideo = true;
 	initSetting.grabDepth = true;
-	initSetting.grabAudio = true;
+	initSetting.grabAudio = false;
 	initSetting.grabLabel = true;
 	initSetting.grabSkeleton = true;
 	initSetting.grabCalibratedVideo = true;
-	initSetting.grabLabelCv = true;
+	initSetting.grabLabelCv = false;
 	initSetting.videoResolution = NUI_IMAGE_RESOLUTION_640x480;
 	initSetting.depthResolution = NUI_IMAGE_RESOLUTION_640x480;
 	kinect.init(initSetting);
@@ -32,7 +32,7 @@ void testApp::setup() {
 //	kinect.setNearmode(true); // if you want to set nearmode, uncomment here
 	kinect.open();
 
-	kinect.addKinectListener(this, &testApp::kinectPlugged, &testApp::kinectUnplugged);
+	kinect.addKinectListener(this, &ofApp::kinectPlugged, &ofApp::kinectUnplugged);
 	
 #ifdef USE_TWO_KINECTS
 	// watch out that only the first kinect can grab label and skeleton.
@@ -69,7 +69,7 @@ void testApp::setup() {
 }
 
 //--------------------------------------------------------------
-void testApp::update() {
+void ofApp::update() {
 	kinectSource->update();
 	if(bRecord){
 		kinectRecorder.update();
@@ -80,7 +80,7 @@ void testApp::update() {
 }
 
 //--------------------------------------------------------------
-void testApp::draw() {
+void ofApp::draw() {
 	ofBackground(100, 100, 100);
 	// Draw video only
 	if(bDrawVideo){
@@ -171,7 +171,7 @@ void testApp::draw() {
 }
 
 //--------------------------------------------------------------
-void testApp::drawCalibratedTexture(){
+void ofApp::drawCalibratedTexture(){
 	ofPixels calibpix = kinect.getCalibratedVideoPixels();
 	ofMesh mesh;
 	mesh.setMode(OF_PRIMITIVE_TRIANGLES);
@@ -218,7 +218,7 @@ void testApp::drawCalibratedTexture(){
 
 
 //--------------------------------------------------------------
-void testApp::exit() {
+void ofApp::exit() {
 	if(calibratedTexture.bAllocated()){
 		calibratedTexture.clear();
 	}
@@ -239,7 +239,6 @@ void testApp::exit() {
 		delete skeletonDraw_;
 		skeletonDraw_ = NULL;
 	}
-
 	kinect.setAngle(0);
 	kinect.close();
 	kinect.removeKinectListener(this);
@@ -253,7 +252,7 @@ void testApp::exit() {
 }
 
 //--------------------------------------------------------------
-void testApp::keyPressed (int key) {
+void ofApp::keyPressed (int key) {
 	switch(key){
 	case 'v': // draw video only
 	case 'V':
@@ -361,39 +360,39 @@ void testApp::keyPressed (int key) {
 }
 
 //--------------------------------------------------------------
-void testApp::mouseMoved(int x, int y) {
+void ofApp::mouseMoved(int x, int y) {
 	mRotationY = (x - 512) / 5;
 	mRotationX = (384 - y) / 5;
 }
 
 //--------------------------------------------------------------
-void testApp::mouseDragged(int x, int y, int button){
+void ofApp::mouseDragged(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mousePressed(int x, int y, int button){
+void ofApp::mousePressed(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::mouseReleased(int x, int y, int button){
+void ofApp::mouseReleased(int x, int y, int button){
 }
 
 //--------------------------------------------------------------
-void testApp::windowResized(int w, int h){
+void ofApp::windowResized(int w, int h){
 }
 
 //--------------------------------------------------------------
-void testApp::kinectPlugged(){
+void ofApp::kinectPlugged(){
 	bPlugged = true;
 }
 
 //--------------------------------------------------------------
-void testApp::kinectUnplugged(){
+void ofApp::kinectUnplugged(){
 	bPlugged = false;
 }
 
 //--------------------------------------------------------------
-void testApp::startRecording(){
+void ofApp::startRecording(){
 	if(!bRecord){
 		// stop playback if running
 		stopPlayback();
@@ -404,7 +403,7 @@ void testApp::startRecording(){
 }
 
 //--------------------------------------------------------------
-void testApp::stopRecording(){
+void ofApp::stopRecording(){
 	if(bRecord){
 		kinectRecorder.close();
 		bRecord = false;
@@ -412,7 +411,7 @@ void testApp::stopRecording(){
 }
 
 //--------------------------------------------------------------
-void testApp::startPlayback(){
+void ofApp::startPlayback(){
 	if(!bPlayback){
 		stopRecording();
 		kinect.close();
@@ -427,7 +426,7 @@ void testApp::startPlayback(){
 }
 
 //--------------------------------------------------------------
-void testApp::stopPlayback(){
+void ofApp::stopPlayback(){
 	if(bPlayback){
 		kinectPlayer.close();
 		kinect.open();

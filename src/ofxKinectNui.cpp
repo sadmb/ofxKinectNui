@@ -321,7 +321,7 @@ bool ofxKinectNui::open(){
 	if(kinect.IsConnected() && !isOpened()){
 		if(isInited()){
 			if(!kinect.IsInited()){
-				init(bGrabsVideo, bGrabsDepth, bGrabsLabel, bGrabsAudio, bGrabsLabel, bGrabsSkeleton, bGrabsLabelCv, mVideoImageType, mVideoResolution, mDepthResolution);
+				init(bGrabsVideo, bGrabsDepth, bGrabsAudio, bGrabsLabel, bGrabsSkeleton, bGrabsCalibratedVideo, bGrabsLabelCv, mVideoImageType, mVideoResolution, mDepthResolution);
 			}
 		}
 		if(bGrabsVideo){
@@ -432,10 +432,10 @@ void ofxKinectNui::update(UINT flag){
 		int w = depth.Width();
 		int h = depth.Height();
 
-		unsigned short* distancePixs;
-		unsigned char* labelPixs;
-		unsigned char* calibVideoPixs;
-		long* vpixs;
+		unsigned short* distancePixs = NULL;
+		unsigned char* labelPixs = NULL;
+		unsigned char* calibVideoPixs = NULL;
+		long* vpixs = NULL;
 
 		if(flag & UPDATE_FLAG_DISTANCE){
 			distancePixs = distancePixels.getPixels();
@@ -483,19 +483,17 @@ void ofxKinectNui::update(UINT flag){
 						memcpy(calibVideoPixs + depthIndex * mVideoBpp + i, &vbit, sizeof(char));
 					}
 				}
-			}
-		}
-		if(flag & UPDATE_FLAG_LABEL_CV){
-			for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
-				unsigned char lb;
-				unsigned char* labelPixsCv = labelPixelsCv[i].getPixels();
-				for(int j = 0; j < w * h; j++){
-					if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
-						lb = 0xFF;
-						memcpy(labelPixsCv + j, &lb, sizeof(char));
-					}else{
-						lb = 0x00;
-						memcpy(labelPixsCv + j, &lb, sizeof(char));
+				if(flag & UPDATE_FLAG_LABEL_CV){
+					for(int i = 0; i < KINECT_PLAYERS_INDEX_NUM; ++i){
+						unsigned char lb;
+						unsigned char* labelPixsCv = labelPixelsCv[i].getPixels();
+						if((i == 0 && playerLabel > 0) || (i > 0 && playerLabel == i)){
+							lb = 0xFF;
+							memcpy(labelPixsCv + depthIndex, &lb, sizeof(char));
+						}else{
+							lb = 0x00;
+							memcpy(labelPixsCv + depthIndex, &lb, sizeof(char));
+						}
 					}
 				}
 			}
