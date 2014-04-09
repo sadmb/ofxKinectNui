@@ -184,7 +184,7 @@ namespace kinect {
 
 				if(SUCCEEDED(hr)){
 					// Write the file size
-					li.QuadPart = sizeof(FOURCC);
+					li.QuadPart = sizeof(DWORD);
 					if(0 == SetFilePointerEx(hFile, li, NULL, FILE_BEGIN)){
 						hr = HRESULT_FROM_WIN32(GetLastError());
 					}

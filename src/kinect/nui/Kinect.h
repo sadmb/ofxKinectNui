@@ -22,6 +22,7 @@
 #include <map>
 
 #include <Windows.h>
+#include <objbase.h>
 #include <NuiApi.h>
 
 #include "kinect/nui/ImageStream.h"

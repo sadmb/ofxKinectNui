@@ -10,8 +10,8 @@
  * @date	Oct. 28, 2011
  */
 /******************************************************************/
-#include "ofApp.h" // Needs to be in front of ofMain.h
 #include "ofMain.h"
+#include "ofApp.h"
 #include "ofAppGlutWindow.h"
 
 //========================================================================

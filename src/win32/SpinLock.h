@@ -16,7 +16,7 @@
 #define KINECT_NUI_SPIN_LOCK
 
 #include <process.h>
-#include <winbase.h>
+#include <interlockedapi.h>
 
 namespace win32{
 	//////////////////////////////////////////////////

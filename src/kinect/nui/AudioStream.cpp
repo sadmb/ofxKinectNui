@@ -5,6 +5,7 @@
 #pragma comment(lib, "Msdmo.lib")
 #pragma comment(lib, "dmoguids.lib")
 #pragma comment(lib, "amstrmid.lib")
+#pragma comment(lib, "WinMM.lib")
 #endif
 
 
@@ -21,6 +22,7 @@ namespace kinect {
 			, propertyStore_( NULL )
             , hStream_( 0 )
             , event_( 0 )
+			, isOpen( false )
         {
         }
 
@@ -44,9 +46,10 @@ namespace kinect {
 				propertyStore_->Release();
 				propertyStore_ = NULL;
 			}
-#ifdef USES_KINECT_AUDIOSTREAM
-			CoUninitialize();
-#endif
+			if(isOpen){
+				isOpen = false;
+				CoUninitialize();
+			}
         }
 		
 		//----------------------------------------------------------
@@ -79,6 +82,7 @@ namespace kinect {
 				return;
 			}
 			CoInitialize(NULL);
+			isOpen = true;
 			HRESULT ret = sensor_->NuiGetAudioSource(&audioBeam_);
 			if(FAILED(ret)){
 				return;
@@ -91,10 +95,10 @@ namespace kinect {
 			if(FAILED(ret)){
 				return;
 			}
-			if(audioBeam_ != NULL){
+/*			if(audioBeam_ != NULL){
 				audioBeam_->Release();
 				audioBeam_ = NULL;
-			}
+			}*/
 
 			PROPVARIANT pvSysMode;
 			PropVariantInit(&pvSysMode);

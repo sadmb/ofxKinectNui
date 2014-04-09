@@ -12,8 +12,8 @@
 /******************************************************************/
 #pragma once
 
-#include "ofxKinectNui.h"
 #include "ofMain.h"
+#include "ofxKinectNui.h"
 #include "ofxKinectNuiPlayer.h"
 #include "ofxKinectNuiRecorder.h"
 

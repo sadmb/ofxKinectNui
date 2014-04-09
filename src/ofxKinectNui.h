@@ -13,9 +13,9 @@
 #ifndef OFX_KINECT_NUI_H
 #define OFX_KINECT_NUI_H
 
-#include "kinect/nui/Kinect.h" // this should be before ofMain.h
-#include "kinect/nui/ImageFrame.h" // for VideoFrame and DepthFrame
 #include "ofMain.h"
+#include "kinect/nui/Kinect.h"
+#include "kinect/nui/ImageFrame.h" // for VideoFrame and DepthFrame
 #include "ofxBase3DVideo.h"
 
 class IDrawPixels;

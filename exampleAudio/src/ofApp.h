@@ -12,10 +12,9 @@
 /******************************************************************/
 #pragma once
 
-
+#include "ofMain.h"
 #include "ofxKinectNui.h"
 #include "ofxKinectNuiSoundRecorder.h"
-#include "ofMain.h"
 
 
 class ofxKinectNuiDrawTexture;
