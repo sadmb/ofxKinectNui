@@ -515,7 +515,7 @@ void ofxKinectNui::update(UINT flag){
 	}
 	if(flag & UPDATE_FLAG_GROUP_SKELETON){
 		// Get the skeleton data of next frame
-		kinect::nui::SkeletonFrame skeleton = kinect.Skeleton().GetNextFrame();
+		kinect::nui::SkeletonFrame skeleton = kinect.Skeleton().GetNextFrame(30);
 		if(skeleton.IsFoundSkeleton()){
 			bIsFoundSkeleton = true;
 			skeleton.TransformSmooth();
