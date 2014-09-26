@@ -1,6 +1,5 @@
 #include "ofxKinectNuiSoundRecorder.h"
 #include <tchar.h>
-
 //---------------------------------------------------------------------------
 /**
 	@brief	Constructor

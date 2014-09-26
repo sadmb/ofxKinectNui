@@ -13,11 +13,11 @@
 #ifndef OFX_KINECT_NUI_SOUND_RECORDER
 #define OFX_KINECT_NUI_SOUND_RECORDER
 
-#include <Windows.h>
+#include "kinect/nui/Kinect.h"
 #include "kinect/nui/WaveFileWriter.h"
 #include "kinect/nui/WaveOutput.h"
-#include "ofxKinectNui.h"
 #include "ofMain.h"
+#include "ofxKinectNui.h"
 
 //////////////////////////////////////////////////////
 //				class declarations					//

@@ -18,6 +18,10 @@
 // define below if you want to use audio stream
 //#define USES_KINECT_AUDIOSTREAM
 
+#ifndef _WIN32_WINNT
+	#define _WIN32_WINNT 0x0500
+#endif
+
 #include <memory>
 #include <map>
 

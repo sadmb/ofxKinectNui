@@ -1,5 +1,6 @@
 ﻿#include "kinect/nui/SkeletonFrame.h"
 #include "kinect/nui/SkeletonEngine.h"
+#include <iostream>
 
 namespace kinect {
 	namespace nui {
@@ -30,6 +31,7 @@ namespace kinect {
 			HRESULT ret = sensor_->NuiTransformSmooth( &skeletonFrame_, pSmoothingParams );
 			if (FAILED(ret)) {
 				// TODO fail announce
+				std::cout << "transform failed" << std::endl;
 				return;
 			}
 		}
@@ -76,6 +78,7 @@ namespace kinect {
 			HRESULT ret = sensor_->NuiSkeletonGetNextFrame( dwMillisecondsToWait, &skeletonFrame_ );
 			if (FAILED(ret)) {
 				// TODO fail announce
+				std::cout << "get frame failed" << std::endl;
 				return;
 			}
 		}

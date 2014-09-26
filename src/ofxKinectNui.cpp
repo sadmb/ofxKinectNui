@@ -543,6 +543,7 @@ void ofxKinectNui::update(UINT flag){
 			}
 		}
 	}else{
+		cout << "false2" << endl;
 		bIsFoundSkeleton = false;
 	}
 
